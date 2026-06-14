@@ -3,41 +3,41 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- CreateEnum
-CREATE TYPE "organization_type" AS ENUM ('BASS', 'WHITE_LABEL', 'COMPANY', 'MERCHANT');
+CREATE TYPE "OrganizationType" AS ENUM ('BASS', 'WHITE_LABEL', 'COMPANY', 'MERCHANT');
 
 -- CreateEnum
-CREATE TYPE "user_status" AS ENUM ('ACTIVE', 'INACTIVE', 'BLOCKED', 'PENDING_MFA');
+CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'BLOCKED', 'PENDING_MFA');
 
 -- CreateEnum
-CREATE TYPE "mfa_method" AS ENUM ('TOTP', 'SMS', 'EMAIL');
+CREATE TYPE "MfaMethod" AS ENUM ('TOTP', 'SMS', 'EMAIL');
 
 -- CreateEnum
-CREATE TYPE "role_scope" AS ENUM ('GLOBAL', 'ORGANIZATION', 'WHITE_LABEL', 'MERCHANT');
+CREATE TYPE "RoleScope" AS ENUM ('GLOBAL', 'ORGANIZATION', 'WHITE_LABEL', 'MERCHANT');
 
 -- CreateEnum
-CREATE TYPE "account_type" AS ENUM ('OPERATIONAL', 'RESERVE', 'SETTLEMENT', 'CLIENT', 'ESCROW');
+CREATE TYPE "AccountType" AS ENUM ('OPERATIONAL', 'RESERVE', 'SETTLEMENT', 'CLIENT', 'ESCROW');
 
 -- CreateEnum
-CREATE TYPE "account_status" AS ENUM ('ACTIVE', 'BLOCKED', 'CLOSED');
+CREATE TYPE "AccountStatus" AS ENUM ('ACTIVE', 'BLOCKED', 'CLOSED');
 
 -- CreateEnum
-CREATE TYPE "ledger_account_type" AS ENUM ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE');
+CREATE TYPE "LedgerAccountType" AS ENUM ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE');
 
 -- CreateEnum
-CREATE TYPE "journal_entry_status" AS ENUM ('POSTED', 'VOIDED');
+CREATE TYPE "JournalEntryStatus" AS ENUM ('POSTED', 'VOIDED');
 
 -- CreateEnum
-CREATE TYPE "entry_direction" AS ENUM ('DEBIT', 'CREDIT');
+CREATE TYPE "EntryDirection" AS ENUM ('DEBIT', 'CREDIT');
 
 -- CreateEnum
-CREATE TYPE "audit_action" AS ENUM ('CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'MFA_ENROLL', 'PERMISSION_CHANGE', 'ACCOUNT_BLOCK');
+CREATE TYPE "AuditAction" AS ENUM ('CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'MFA_ENROLL', 'PERMISSION_CHANGE', 'ACCOUNT_BLOCK');
 
 -- CreateTable
 CREATE TABLE "organizations" (
     "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
     "slug" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "type" "organization_type" NOT NULL,
+    "type" "OrganizationType" NOT NULL,
     "parent_id" TEXT,
     "status" TEXT NOT NULL DEFAULT 'ACTIVE',
     "settings" JSONB NOT NULL DEFAULT '{}',
@@ -54,7 +54,7 @@ CREATE TABLE "users" (
     "email" TEXT NOT NULL,
     "password_hash" TEXT NOT NULL,
     "full_name" TEXT NOT NULL,
-    "status" "user_status" NOT NULL DEFAULT 'ACTIVE',
+    "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
     "email_verified_at" TIMESTAMP(3),
     "last_login_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -67,7 +67,7 @@ CREATE TABLE "users" (
 CREATE TABLE "mfa_factors" (
     "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
     "user_id" TEXT NOT NULL,
-    "method" "mfa_method" NOT NULL DEFAULT 'TOTP',
+    "method" "MfaMethod" NOT NULL DEFAULT 'TOTP',
     "secret" TEXT NOT NULL,
     "is_primary" BOOLEAN NOT NULL DEFAULT false,
     "is_verified" BOOLEAN NOT NULL DEFAULT false,
@@ -96,7 +96,7 @@ CREATE TABLE "roles" (
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "description" TEXT,
-    "scope" "role_scope" NOT NULL DEFAULT 'ORGANIZATION',
+    "scope" "RoleScope" NOT NULL DEFAULT 'ORGANIZATION',
     "org_id" TEXT,
     "is_system" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -142,7 +142,7 @@ CREATE TABLE "audit_logs" (
     "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
     "user_id" TEXT,
     "org_id" TEXT,
-    "action" "audit_action" NOT NULL,
+    "action" "AuditAction" NOT NULL,
     "resource_type" TEXT NOT NULL,
     "resource_id" TEXT,
     "old_value" JSONB,
@@ -160,8 +160,8 @@ CREATE TABLE "accounts" (
     "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
     "org_id" TEXT NOT NULL,
     "parent_id" TEXT,
-    "type" "account_type" NOT NULL,
-    "status" "account_status" NOT NULL DEFAULT 'ACTIVE',
+    "type" "AccountType" NOT NULL,
+    "status" "AccountStatus" NOT NULL DEFAULT 'ACTIVE',
     "currency" TEXT NOT NULL DEFAULT 'BRL',
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -191,7 +191,7 @@ CREATE TABLE "ledger_accounts" (
     "org_id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "type" "ledger_account_type" NOT NULL,
+    "type" "LedgerAccountType" NOT NULL,
     "parent_id" TEXT,
     "currency" TEXT NOT NULL DEFAULT 'BRL',
     "is_active" BOOLEAN NOT NULL DEFAULT true,
@@ -205,7 +205,7 @@ CREATE TABLE "ledger_accounts" (
 CREATE TABLE "journal_entries" (
     "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
     "org_id" TEXT NOT NULL,
-    "status" "journal_entry_status" NOT NULL DEFAULT 'POSTED',
+    "status" "JournalEntryStatus" NOT NULL DEFAULT 'POSTED',
     "description" TEXT NOT NULL,
     "reference_id" TEXT,
     "reference_type" TEXT,
@@ -225,7 +225,7 @@ CREATE TABLE "journal_entry_lines" (
     "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
     "journal_entry_id" TEXT NOT NULL,
     "ledger_account_id" TEXT NOT NULL,
-    "direction" "entry_direction" NOT NULL,
+    "direction" "EntryDirection" NOT NULL,
     "amount" DECIMAL(18,2) NOT NULL,
     "currency" TEXT NOT NULL DEFAULT 'BRL',
     "description" TEXT,
