@@ -1,0 +1,361 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum OrganizationType {
+  BASS
+  WHITE_LABEL
+  COMPANY
+  MERCHANT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  PENDING_MFA
+}
+
+enum MfaMethod {
+  TOTP
+  SMS
+}
+
+enum RoleScope {
+  GLOBAL
+  ORGANIZATION
+  WHITE_LABEL
+  MERCHANT
+}
+
+enum AccountType {
+  OPERATIONAL
+  RESERVE
+  SETTLEMENT
+  CLIENT
+  ESCROW
+}
+
+enum AccountStatus {
+  ACTIVE
+  BLOCKED
+  CLOSED
+}
+
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum JournalEntryStatus {
+  POSTED
+  VOIDED
+}
+
+enum EntryDirection {
+  DEBIT
+  CREDIT
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  MFA_ENROLL
+  MFA_DISABLE
+  PERMISSION_CHANGE
+  ACCOUNT_BLOCK
+  ACCOUNT_UNBLOCK
+  ROLE_ASSIGN
+  ROLE_REVOKE
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Organizations
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Organization {
+  id        String           @id @default(uuid())
+  slug      String           @unique
+  name      String
+  type      OrganizationType
+  parentId  String?          @map("parent_id")
+  parent    Organization?    @relation("OrgHierarchy", fields: [parentId], references: [id])
+  children  Organization[]   @relation("OrgHierarchy")
+  status    String           @default("ACTIVE")
+  settings  Json?
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  users          User[]
+  accounts       Account[]
+  roles          Role[]
+  ledgerAccounts LedgerAccount[]
+  journalEntries JournalEntry[]
+  auditLogs      AuditLog[]
+
+  @@index([type])
+  @@index([parentId])
+  @@map("organizations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IAM
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id              String     @id @default(uuid())
+  orgId           String     @map("org_id")
+  org             Organization @relation(fields: [orgId], references: [id])
+  email           String     @unique
+  passwordHash    String     @map("password_hash")
+  fullName        String     @map("full_name")
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?  @map("email_verified_at")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  mfaFactors     MfaFactor[]
+  sessions       Session[]
+  userRoles      UserRole[]
+  auditLogs      AuditLog[]
+  journalEntries JournalEntry[]
+
+  @@index([orgId, status])
+  @@map("users")
+}
+
+model MfaFactor {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  method     MfaMethod
+  secret     String
+  isPrimary  Boolean   @default(false) @map("is_primary")
+  isVerified Boolean   @default(false) @map("is_verified")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("mfa_factors")
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String    @map("refresh_token_hash")
+  deviceInfo       Json?     @map("device_info")
+  ipAddress        String?   @map("ip_address")
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Role {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+  scope       RoleScope @default(ORGANIZATION)
+  orgId       String?   @map("org_id")
+  org         Organization? @relation(fields: [orgId], references: [id])
+  isSystem    Boolean   @default(false) @map("is_system")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@unique([slug, orgId])
+  @@index([orgId])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  resource    String
+  action      String
+  scopeType   String   @map("scope_type")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action, scopeType])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id")
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String     @map("permission_id")
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId    String    @map("role_id")
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  orgId     String    @map("org_id")
+  grantedBy String?   @map("granted_by")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@id([userId, roleId, orgId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model AuditLog {
+  id           String      @id @default(uuid())
+  userId       String?     @map("user_id")
+  user         User?       @relation(fields: [userId], references: [id])
+  orgId        String?     @map("org_id")
+  org          Organization? @relation(fields: [orgId], references: [id])
+  action       AuditAction
+  resourceType String      @map("resource_type")
+  resourceId   String?     @map("resource_id")
+  oldValue     Json?       @map("old_value")
+  newValue     Json?       @map("new_value")
+  ipAddress    String?     @map("ip_address")
+  userAgent    String?     @map("user_agent")
+  metadata     Json?
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([orgId, createdAt])
+  @@index([resourceType, resourceId])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Accounts
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Account {
+  id          String        @id @default(uuid())
+  orgId       String        @map("org_id")
+  org         Organization  @relation(fields: [orgId], references: [id])
+  parentId    String?       @map("parent_id")
+  parent      Account?      @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children    Account[]     @relation("AccountHierarchy")
+  type        AccountType
+  status      AccountStatus @default(ACTIVE)
+  currency    String        @default("BRL")
+  name        String
+  description String?
+  metadata    Json?
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  balance AccountBalance?
+
+  @@index([orgId, type])
+  @@index([orgId, status])
+  @@index([parentId])
+  @@map("accounts")
+}
+
+model AccountBalance {
+  id              String   @id @default(uuid())
+  accountId       String   @unique @map("account_id")
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  availableAmount Decimal  @default(0) @map("available_amount") @db.Decimal(18, 2)
+  blockedAmount   Decimal  @default(0) @map("blocked_amount") @db.Decimal(18, 2)
+  pendingAmount   Decimal  @default(0) @map("pending_amount") @db.Decimal(18, 2)
+  currency        String   @default("BRL")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("account_balances")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ledger
+// ─────────────────────────────────────────────────────────────────────────────
+
+model LedgerAccount {
+  id        String            @id @default(uuid())
+  orgId     String            @map("org_id")
+  org       Organization      @relation(fields: [orgId], references: [id])
+  code      String
+  name      String
+  type      LedgerAccountType
+  parentId  String?           @map("parent_id")
+  parent    LedgerAccount?    @relation("LedgerHierarchy", fields: [parentId], references: [id])
+  children  LedgerAccount[]   @relation("LedgerHierarchy")
+  currency  String            @default("BRL")
+  isActive  Boolean           @default(true) @map("is_active")
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  lines JournalEntryLine[]
+
+  @@unique([orgId, code])
+  @@index([orgId, type])
+  @@map("ledger_accounts")
+}
+
+model JournalEntry {
+  id             String             @id @default(uuid())
+  orgId          String             @map("org_id")
+  org            Organization       @relation(fields: [orgId], references: [id])
+  status         JournalEntryStatus @default(POSTED)
+  description    String
+  referenceId    String?            @map("reference_id")
+  referenceType  String?            @map("reference_type")
+  idempotencyKey String             @unique @map("idempotency_key")
+  metadata       Json?
+  postedAt       DateTime           @default(now()) @map("posted_at")
+  voidedAt       DateTime?          @map("voided_at")
+  voidedBy       String?            @map("voided_by")
+  createdBy      String             @map("created_by")
+  createdByUser  User               @relation(fields: [createdBy], references: [id])
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  lines JournalEntryLine[]
+
+  @@index([orgId, postedAt])
+  @@index([referenceId, referenceType])
+  @@map("journal_entries")
+}
+
+model JournalEntryLine {
+  id              String         @id @default(uuid())
+  journalEntryId  String         @map("journal_entry_id")
+  journalEntry    JournalEntry   @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  ledgerAccountId String         @map("ledger_account_id")
+  ledgerAccount   LedgerAccount  @relation(fields: [ledgerAccountId], references: [id])
+  direction       EntryDirection
+  amount          Decimal        @db.Decimal(18, 2)
+  currency        String         @default("BRL")
+  description     String?
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@index([journalEntryId])
+  @@index([ledgerAccountId])
+  @@map("journal_entry_lines")
+}
