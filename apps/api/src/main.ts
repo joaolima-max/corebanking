@@ -64,12 +64,6 @@ async function bootstrap(): Promise<void> {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  // Health endpoint (public)
-  const httpAdapter = app.getHttpAdapter();
-  httpAdapter.get('/api/health', (_req: unknown, res: { json: (data: unknown) => void }) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
-
   const port = configService.get<AppConfig['port']>('port') ?? 3000;
   await app.listen(port);
 

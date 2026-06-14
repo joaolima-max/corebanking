@@ -108,7 +108,7 @@ export class AuthController {
   }
 
   @Public()
-  @Get('.well-known/jwks.json')
+  @Get('api/.well-known/jwks.json')
   @ApiOperation({ summary: 'JWKS public key set' })
   async jwks() {
     return this.authService.getJwks();
