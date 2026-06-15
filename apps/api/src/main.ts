@@ -28,10 +28,15 @@ async function bootstrap(): Promise<void> {
   app.use(helmet());
   app.use(compression());
 
+  const allowedOrigins = process.env['ALLOWED_ORIGINS']?.split(',').filter(Boolean);
+  if (!allowedOrigins?.length && process.env['NODE_ENV'] === 'production') {
+    throw new Error('ALLOWED_ORIGINS must be set in production');
+  }
   app.enableCors({
-    origin: process.env['ALLOWED_ORIGINS']?.split(',') ?? '*',
+    origin: allowedOrigins?.length ? allowedOrigins : '*',
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'X-Idempotency-Key'],
+    credentials: false,
   });
 
   app.setGlobalPrefix('api/v1', {
@@ -47,6 +52,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
+  const nodeEnv = configService.get<string>('nodeEnv') ?? 'development';
   const config = new DocumentBuilder()
     .setTitle('Bass Financial Core API')
     .setDescription('Core banking platform — IAM, Organizations, Accounts, Ledger')
@@ -62,13 +68,18 @@ async function bootstrap(): Promise<void> {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  if (nodeEnv !== 'production') {
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const port = configService.get<AppConfig['port']>('port') ?? 3000;
   await app.listen(port);
 
-  console.log(`🚀 Bass Financial Core API running on port ${port}`);
-  console.log(`📚 Swagger UI: http://localhost:${port}/api/docs`);
+  const logger = new (await import('@nestjs/common')).Logger('Bootstrap');
+  logger.log(`Bass Financial Core API running on port ${port}`);
+  if (nodeEnv !== 'production') {
+    logger.log(`Swagger UI: http://localhost:${port}/api/docs`);
+  }
 }
 
 bootstrap().catch(console.error);

@@ -7,11 +7,11 @@ import { AlertTriangle, AlertCircle, Info, CheckCircle, RefreshCw } from 'lucide
 
 interface Alert {
   id: string
-  level: 'critical' | 'warning' | 'info'
+  severity: 'critical' | 'warning' | 'info'
   title: string
   description: string
   category: string
-  createdAt: string
+  timestamp: string
   resolvedAt?: string
 }
 
@@ -20,14 +20,14 @@ interface AlertsMetrics {
   alerts: Alert[]
 }
 
-const levelConfig = {
+const severityConfig = {
   critical: { icon: AlertCircle, bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', badge: 'bg-red-100 text-red-700', dot: 'bg-red-500', label: 'Crítico' },
   warning: { icon: AlertTriangle, bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500', label: 'Aviso' },
   info: { icon: Info, bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-700', dot: 'bg-blue-400', label: 'Info' },
 }
 
 function AlertItem({ alert }: { alert: Alert }) {
-  const cfg = levelConfig[alert.level]
+  const cfg = severityConfig[alert.severity]
   const Icon = cfg.icon
   return (
     <div className={`flex gap-4 p-4 rounded-lg border ${cfg.bg} ${cfg.border}`}>
@@ -39,7 +39,7 @@ function AlertItem({ alert }: { alert: Alert }) {
           <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{alert.category}</span>
         </div>
         <p className="text-xs text-slate-600 mt-1">{alert.description}</p>
-        <p className="text-xs text-slate-400 mt-1">{new Date(alert.createdAt).toLocaleString('pt-BR')}</p>
+        <p className="text-xs text-slate-400 mt-1">{new Date(alert.timestamp).toLocaleString('pt-BR')}</p>
       </div>
       {alert.resolvedAt && (
         <CheckCircle size={16} className="text-emerald-500 shrink-0 mt-0.5" />
@@ -55,7 +55,7 @@ export default function AlertsPage() {
   const [refreshing, setRefreshing] = useState(false)
 
   const fetchData = useCallback(() => {
-    if (!token) return
+    if (!token) { setLoading(false); return }
     setRefreshing(true)
     api.get<AlertsMetrics>('/api/v1/dashboard/alerts', token)
       .then(setData)
@@ -69,9 +69,9 @@ export default function AlertsPage() {
     return () => clearInterval(interval)
   }, [fetchData])
 
-  const critical = data?.alerts.filter(a => a.level === 'critical') ?? []
-  const warning = data?.alerts.filter(a => a.level === 'warning') ?? []
-  const info = data?.alerts.filter(a => a.level === 'info') ?? []
+  const critical = data?.alerts.filter(a => a.severity === 'critical') ?? []
+  const warning = data?.alerts.filter(a => a.severity === 'warning') ?? []
+  const info = data?.alerts.filter(a => a.severity === 'info') ?? []
 
   return (
     <div className="space-y-6">

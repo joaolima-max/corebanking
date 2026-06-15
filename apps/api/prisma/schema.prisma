@@ -165,6 +165,7 @@ model Session {
   revokedAt        DateTime? @map("revoked_at")
   createdAt        DateTime  @default(now()) @map("created_at")
 
+  @@index([refreshTokenHash])
   @@index([userId])
   @@index([expiresAt])
   @@map("sessions")
@@ -339,6 +340,7 @@ model JournalEntry {
   lines JournalEntryLine[]
 
   @@index([orgId, postedAt])
+  @@index([orgId, createdAt])
   @@index([referenceId, referenceType])
   @@map("journal_entries")
 }
@@ -357,5 +359,6 @@ model JournalEntryLine {
 
   @@index([journalEntryId])
   @@index([ledgerAccountId])
+  @@index([ledgerAccountId, direction])
   @@map("journal_entry_lines")
 }

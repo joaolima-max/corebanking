@@ -1,10 +1,11 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { api } from './api'
+import { api, setUnauthorizedHandler } from './api'
 
 interface User {
   email: string
+  id?: string
 }
 
 interface AuthContextType {
@@ -13,6 +14,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
+  isHydrating: boolean
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -20,6 +22,14 @@ const AuthContext = createContext<AuthContextType | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
+  const [isHydrating, setIsHydrating] = useState(true)
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('bass_token')
+    localStorage.removeItem('bass_user_email')
+    setToken(null)
+    setUser(null)
+  }, [])
 
   useEffect(() => {
     const stored = localStorage.getItem('bass_token')
@@ -28,7 +38,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(stored)
       setUser({ email: storedEmail || '' })
     }
+    setIsHydrating(false)
   }, [])
+
+  // Register single-flight 401 handler in API client
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      logout()
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login'
+      }
+    })
+  }, [logout])
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await api.post<{ accessToken: string; refreshToken: string; expiresIn: number }>(
@@ -41,15 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser({ email })
   }, [])
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('bass_token')
-    localStorage.removeItem('bass_user_email')
-    setToken(null)
-    setUser(null)
-  }, [])
-
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated: !!token, isHydrating }}>
       {children}
     </AuthContext.Provider>
   )

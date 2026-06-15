@@ -92,13 +92,6 @@ export class LedgerService {
   // --- Journal Entries ---
 
   async postJournalEntry(dto: CreateJournalEntryDto, actor: AuthUser) {
-    // Idempotency: return existing JE if duplicate key
-    const existing = await this.prisma.journalEntry.findUnique({
-      where: { idempotencyKey: dto.idempotencyKey },
-      include: { lines: true },
-    });
-    if (existing) return existing;
-
     // Validate double-entry invariant: Σ DEBIT == Σ CREDIT
     let debitSum = new Prisma.Decimal(0);
     let creditSum = new Prisma.Decimal(0);
@@ -118,19 +111,26 @@ export class LedgerService {
       );
     }
 
-    const org = await this.prisma.organization.findUnique({ where: { id: dto.orgId } });
-    if (!org) throw new NotFoundException('Organization not found');
-
-    // Validate all ledger accounts exist
-    const accountIds = [...new Set(dto.lines.map((l) => l.ledgerAccountId))];
-    const ledgerAccounts = await this.prisma.ledgerAccount.findMany({
-      where: { id: { in: accountIds }, isActive: true },
-    });
-    if (ledgerAccounts.length !== accountIds.length) {
-      throw new NotFoundException('One or more ledger accounts not found or inactive');
-    }
-
     return this.prisma.$transaction(async (tx) => {
+      // Idempotency check inside transaction
+      const existing = await tx.journalEntry.findUnique({
+        where: { idempotencyKey: dto.idempotencyKey },
+        include: { lines: true },
+      });
+      if (existing) return existing;
+
+      const org = await tx.organization.findUnique({ where: { id: dto.orgId } });
+      if (!org) throw new NotFoundException('Organization not found');
+
+      // Validate all ledger accounts exist inside the same transaction
+      const accountIds = [...new Set(dto.lines.map((l) => l.ledgerAccountId))];
+      const ledgerAccounts = await tx.ledgerAccount.findMany({
+        where: { id: { in: accountIds }, isActive: true },
+      });
+      if (ledgerAccounts.length !== accountIds.length) {
+        throw new NotFoundException('One or more ledger accounts not found or inactive');
+      }
+
       const now = new Date();
 
       const journalEntry = await tx.journalEntry.create({
@@ -170,7 +170,8 @@ export class LedgerService {
     cursor?: string;
     limit?: number;
   }) {
-    const { orgId, from, to, referenceId, status, cursor, limit = 20 } = params;
+    const { orgId, from, to, referenceId, status, cursor } = params;
+    const limit = Math.min(params.limit ?? 20, 100);
 
     const where = {
       ...(orgId ? { orgId } : {}),
@@ -211,13 +212,17 @@ export class LedgerService {
   }
 
   async voidJournalEntry(id: string, actor: AuthUser) {
-    const entry = await this.getJournalEntry(id);
-
-    if (entry.status === 'VOIDED') {
-      throw new ConflictException('Journal entry already voided');
-    }
-
     return this.prisma.$transaction(async (tx) => {
+      // Read AND check status inside the transaction to prevent TOCTOU double-void
+      const entry = await tx.journalEntry.findUnique({
+        where: { id },
+        include: { lines: { include: { ledgerAccount: true } } },
+      });
+      if (!entry) throw new NotFoundException('Journal entry not found');
+      if (entry.status === 'VOIDED') {
+        throw new ConflictException('Journal entry already voided');
+      }
+
       await tx.journalEntry.update({
         where: { id },
         data: { status: 'VOIDED', voidedAt: new Date(), voidedBy: actor.id },

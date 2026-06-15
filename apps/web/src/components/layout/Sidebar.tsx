@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard,
   TrendingUp,
   Activity,
   BookOpen,
@@ -28,12 +27,6 @@ interface NavSection {
 }
 
 const NAV_SECTIONS: NavSection[] = [
-  {
-    title: 'PRINCIPAL',
-    items: [
-      { label: 'Início', href: '/dashboard', icon: <LayoutDashboard size={16} /> },
-    ],
-  },
   {
     title: 'FINANCEIRO',
     items: [
@@ -81,7 +74,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-60 h-screen bg-white border-r border-slate-200 flex flex-col fixed left-0 top-0 z-30">
+    <aside aria-label="Navegação principal" className="w-60 h-screen bg-white border-r border-slate-200 flex flex-col fixed left-0 top-0 z-30">
       {/* Logo */}
       <div className="h-15 px-6 py-4 border-b border-slate-200 flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#00B37E' }}>
@@ -104,6 +97,7 @@ export default function Sidebar() {
                 <Link
                   key={item.href + item.label}
                   href={item.href}
+                  aria-current={active ? 'page' : undefined}
                   className={`flex items-center gap-3 px-4 py-2 mx-2 rounded-lg text-sm font-medium transition-all ${
                     active
                       ? 'bg-bass-50 text-bass-600 border-l-2 border-bass-500 pl-3.5'

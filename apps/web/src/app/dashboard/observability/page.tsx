@@ -30,7 +30,7 @@ export default function ObservabilityPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!token) return
+    if (!token) { setLoading(false); return }
     const fetch = () => {
       api.get<ObservabilityMetrics>('/api/v1/dashboard/observability', token)
         .then(setData)

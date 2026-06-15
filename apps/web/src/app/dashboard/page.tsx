@@ -40,7 +40,7 @@ export default function ExecutiveDashboard() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!token) return
+    if (!token) { setLoading(false); return }
     api.get<ExecutiveMetrics>('/api/v1/dashboard/executive', token)
       .then(setData)
       .catch(() => setError('Erro ao carregar métricas'))

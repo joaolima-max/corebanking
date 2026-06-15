@@ -22,10 +22,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     configService: ConfigService<AppConfig>,
   ) {
     const publicKey = configService.get<AppConfig['jwt']>('jwt')?.publicKey;
+    if (!publicKey && process.env['NODE_ENV'] === 'production') {
+      throw new Error('JWT_PUBLIC_KEY must be set in production');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: publicKey || 'dev-secret',
+      secretOrKey: publicKey || 'dev-fallback-not-for-production',
       algorithms: publicKey ? ['RS256'] : ['HS256'],
     });
   }

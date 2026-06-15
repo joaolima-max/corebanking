@@ -23,7 +23,10 @@ import type { AppConfig } from '../../../config/configuration';
         if (privateKey) {
           return { privateKey, signOptions: { algorithm: 'RS256', expiresIn } };
         }
-        return { secret: 'dev-secret', signOptions: { expiresIn } };
+        if (process.env['NODE_ENV'] === 'production') {
+          throw new Error('JWT_PRIVATE_KEY must be set in production');
+        }
+        return { secret: 'dev-fallback-not-for-production', signOptions: { expiresIn } };
       },
     }),
   ],

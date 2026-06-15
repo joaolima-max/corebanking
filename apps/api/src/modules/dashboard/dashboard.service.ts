@@ -135,25 +135,25 @@ export interface AcquiringMetrics {
 }
 
 export interface ObservabilityMetrics {
-  uptime: number;
-  memory: {
-    rss: number;
-    heapUsed: number;
-    heapTotal: number;
-  };
   database: {
-    status: 'healthy' | 'unhealthy';
+    status: 'ok' | 'unhealthy';
     latencyMs: number;
     connections: number;
   };
   redis: {
-    status: 'healthy' | 'unhealthy';
+    status: 'ok' | 'unhealthy';
     latencyMs: number;
   };
-  api: {
-    startedAt: string;
+  process: {
+    memoryUsedMb: number;
+    memoryTotalMb: number;
+    uptimeSeconds: number;
     nodeVersion: string;
-    environment: string;
+  };
+  api: {
+    requestsPerMinute: number;
+    avgLatencyMs: number;
+    p99LatencyMs: number;
   };
 }
 
@@ -168,10 +168,8 @@ export interface Alert {
 }
 
 export interface AlertsData {
-  critical: Alert[];
-  warnings: Alert[];
-  info: Alert[];
-  total: number;
+  summary: { critical: number; warning: number; info: number; total: number };
+  alerts: Alert[];
 }
 
 @Injectable()
@@ -648,25 +646,25 @@ export class DashboardService {
     }
 
     return {
-      uptime: Math.round(process.uptime()),
-      memory: {
-        rss: toMb(mem.rss),
-        heapUsed: toMb(mem.heapUsed),
-        heapTotal: toMb(mem.heapTotal),
-      },
       database: {
-        status: dbStatus,
+        status: dbStatus === 'healthy' ? 'ok' : 'unhealthy',
         latencyMs: dbLatencyMs,
         connections: 1,
       },
       redis: {
-        status: redisStatus,
+        status: redisStatus === 'healthy' ? 'ok' : 'unhealthy',
         latencyMs: redisLatencyMs,
       },
-      api: {
-        startedAt: this.startedAt,
+      process: {
+        memoryUsedMb: toMb(mem.heapUsed),
+        memoryTotalMb: toMb(mem.heapTotal),
+        uptimeSeconds: Math.round(process.uptime()),
         nodeVersion: process.version,
-        environment: this.configService.get<string>('nodeEnv') ?? 'development',
+      },
+      api: {
+        requestsPerMinute: 0,
+        avgLatencyMs: 0,
+        p99LatencyMs: 0,
       },
     };
   }
@@ -693,7 +691,7 @@ export class DashboardService {
             ...orgFilter,
             createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
           },
-          select: { id: true, email: true, createdAt: true },
+          select: { id: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
           take: 10,
         }),
@@ -768,11 +766,15 @@ export class DashboardService {
       });
     }
 
+    const allAlerts = [...critical, ...warnings, ...info];
     return {
-      critical,
-      warnings,
-      info,
-      total: critical.length + warnings.length + info.length,
+      summary: {
+        critical: critical.length,
+        warning: warnings.length,
+        info: info.length,
+        total: allAlerts.length,
+      },
+      alerts: allAlerts,
     };
   }
 }

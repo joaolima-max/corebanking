@@ -8,6 +8,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiOperation, ApiTags, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AuthService } from './auth.service';
@@ -38,6 +39,7 @@ export class AuthController {
   @Public()
   @Post('auth/login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiBody({ type: LoginDto })
   async login(@Body() dto: LoginDto, @Req() req: Request) {
@@ -69,6 +71,7 @@ export class AuthController {
   @Public()
   @Post('auth/mfa/validate')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Validate MFA code during login flow' })
   async validateMfa(@Body() dto: ValidateMfaDto, @Req() req: Request) {
     const ip = (req.ip ?? req.socket.remoteAddress) as string;
@@ -78,6 +81,7 @@ export class AuthController {
   @Public()
   @Post('auth/token/refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(@Body() dto: RefreshTokenDto, @Req() req: Request) {
     const ip = (req.ip ?? req.socket.remoteAddress) as string;

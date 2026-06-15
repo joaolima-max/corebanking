@@ -26,7 +26,7 @@ export default function LedgerPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!token) return
+    if (!token) { setLoading(false); return }
     api.get<LedgerMetrics>('/api/v1/dashboard/ledger', token)
       .then(setData)
       .catch(console.error)

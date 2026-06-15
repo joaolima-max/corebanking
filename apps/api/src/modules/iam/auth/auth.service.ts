@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -53,7 +54,7 @@ export class AuthService {
 
     if (dto.orgMode === 'existing' && dto.existingOrgId) {
       const org = await this.prisma.organization.findUnique({ where: { id: dto.existingOrgId } });
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) throw new BadRequestException('Invalid registration request');
       orgId = org.id;
     } else {
       const orgName = dto.orgName ?? `${dto.fullName}'s Organization`;
@@ -140,17 +141,28 @@ export class AuthService {
 
   async refreshToken(refreshToken: string, ipAddress: string): Promise<TokenPair> {
     const tokenHash = this.hashToken(refreshToken);
-    const session = await this.prisma.session.findFirst({
-      where: { refreshTokenHash: tokenHash, revokedAt: null, expiresAt: { gt: new Date() } },
+
+    return this.prisma.$transaction(async (tx) => {
+      const session = await tx.session.findFirst({
+        where: { refreshTokenHash: tokenHash, revokedAt: null, expiresAt: { gt: new Date() } },
+      });
+
+      if (!session) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      // Atomic revoke — only one concurrent request wins (second gets count=0)
+      const { count } = await tx.session.updateMany({
+        where: { id: session.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
+      if (count === 0) {
+        throw new UnauthorizedException('Refresh token already used');
+      }
+
+      return this.issueTokens(session.userId, ipAddress);
     });
-
-    if (!session) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
-
-    await this.prisma.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } });
-
-    return this.issueTokens(session.userId, ipAddress);
   }
 
   async revokeSession(userId: string, refreshToken: string): Promise<void> {
@@ -173,6 +185,7 @@ export class AuthService {
       where: { id: userId },
       include: {
         userRoles: {
+          where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
           include: {
             role: {
               include: {

@@ -32,7 +32,7 @@ export default function OperationsPage() {
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(() => {
-    if (!token) return
+    if (!token) { setLoading(false); return }
     api.get<OperationsMetrics>('/api/v1/dashboard/operations', token)
       .then(setData)
       .catch(console.error)

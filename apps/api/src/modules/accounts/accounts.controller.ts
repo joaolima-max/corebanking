@@ -55,7 +55,7 @@ export class AccountsController {
   }
 
   @Patch(':id')
-  @Permissions('accounts:read:own_org')
+  @Permissions('accounts:update:own_org')
   @ApiOperation({ summary: 'Update account' })
   update(
     @Param('id') id: string,

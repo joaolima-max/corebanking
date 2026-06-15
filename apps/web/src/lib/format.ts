@@ -10,10 +10,12 @@ export function formatCurrency(value: string | number, currency: string = 'BRL')
 }
 
 export function formatNumber(value: number): string {
+  if (!Number.isFinite(value)) return '—'
   return new Intl.NumberFormat('pt-BR').format(value)
 }
 
 export function formatPercent(value: number): string {
+  if (!Number.isFinite(value)) return '—'
   return new Intl.NumberFormat('pt-BR', {
     minimumFractionDigits: 1,
     maximumFractionDigits: 2,
@@ -21,11 +23,13 @@ export function formatPercent(value: number): string {
 }
 
 export function formatLatency(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return '—'
   if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`
   return `${Math.round(ms)}ms`
 }
 
 export function formatUptime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '—'
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   const s = Math.floor(seconds % 60)
@@ -37,6 +41,7 @@ export function formatUptime(seconds: number): string {
 }
 
 export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return '—'
   if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`
   if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(0)} MB`
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`

@@ -135,7 +135,7 @@ export class AccountsService {
       data: {
         userId: actor.id,
         orgId: account.orgId,
-        action: 'UPDATE',
+        action: 'ACCOUNT_UNBLOCK',
         resourceType: 'Account',
         resourceId: id,
         newValue: { status: 'ACTIVE' },
