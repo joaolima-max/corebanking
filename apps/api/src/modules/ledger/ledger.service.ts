@@ -92,6 +92,13 @@ export class LedgerService {
   // --- Journal Entries ---
 
   async postJournalEntry(dto: CreateJournalEntryDto, actor: AuthUser) {
+    // Fast-path idempotency check before opening a transaction
+    const existing = await this.prisma.journalEntry.findUnique({
+      where: { idempotencyKey: dto.idempotencyKey },
+      include: { lines: true },
+    });
+    if (existing) return existing;
+
     // Validate double-entry invariant: Σ DEBIT == Σ CREDIT
     let debitSum = new Prisma.Decimal(0);
     let creditSum = new Prisma.Decimal(0);
@@ -112,13 +119,6 @@ export class LedgerService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // Idempotency check inside transaction
-      const existing = await tx.journalEntry.findUnique({
-        where: { idempotencyKey: dto.idempotencyKey },
-        include: { lines: true },
-      });
-      if (existing) return existing;
-
       const org = await tx.organization.findUnique({ where: { id: dto.orgId } });
       if (!org) throw new NotFoundException('Organization not found');
 
