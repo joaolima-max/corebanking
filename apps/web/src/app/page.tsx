@@ -1,9 +1,24 @@
-export default function Home() {
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth'
+
+export default function HomePage() {
+  const { isAuthenticated } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/dashboard')
+    } else {
+      router.replace('/login')
+    }
+  }, [isAuthenticated, router])
+
   return (
-    <main style={{ fontFamily: 'sans-serif', padding: '2rem' }}>
-      <h1>Bass Financial Core</h1>
-      <p>Platform under construction.</p>
-      <a href="http://localhost:3000/api/docs">API Documentation →</a>
-    </main>
-  );
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-pulse text-slate-400">Carregando...</div>
+    </div>
+  )
 }

@@ -1,14 +1,22 @@
-import type { Metadata } from 'next';
+import type { Metadata } from 'next'
+import './globals.css'
+import { AuthProvider } from '@/lib/auth'
 
 export const metadata: Metadata = {
-  title: 'Bass Financial Core',
-  description: 'Bass Pago — Core Banking Platform',
-};
+  title: 'Bass Financial Core — Backoffice',
+  description: 'Plataforma de Core Banking Moderno',
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
-  );
+  )
 }
