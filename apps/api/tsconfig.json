@@ -20,8 +20,7 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "paths": {
-      "@bass/shared": ["../../packages/shared/src"],
-      "@prisma/client": ["../../node_modules/.prisma/client"]
+      "@bass/shared": ["../../packages/shared/src"]
     }
   },
   "include": ["src/**/*"],
