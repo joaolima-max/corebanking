@@ -41,6 +41,8 @@ export default function LoginPage() {
         setError('Erro de conexão. Verifique sua rede e tente novamente.')
       } else if (err instanceof ApiError && err.status === 429) {
         setError(err.message)
+      } else if (err instanceof Error && err.message === 'MFA_REQUIRED') {
+        setError('Esta conta requer autenticação de dois fatores (MFA). Contate o administrador.')
       } else {
         setError('Não foi possível acessar o servidor. Tente novamente.')
       }

@@ -52,13 +52,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [logout])
 
   const login = useCallback(async (email: string, password: string) => {
-    const data = await api.post<{ accessToken: string; refreshToken: string; expiresIn: number }>(
+    const data = await api.post<{
+      requiresMfa: boolean;
+      mfaToken?: string;
+      tokens?: { accessToken: string; refreshToken: string; expiresIn: number };
+    }>(
       '/api/v1/auth/login',
       { email, password }
     )
-    localStorage.setItem('bass_token', data.accessToken)
+
+    if (data.requiresMfa) {
+      // MFA not yet wired in the web UI — surface a clear message
+      throw new Error('MFA_REQUIRED')
+    }
+
+    const tokens = data.tokens
+    if (!tokens?.accessToken) {
+      throw new Error('Login falhou: resposta inesperada do servidor.')
+    }
+
+    localStorage.setItem('bass_token', tokens.accessToken)
     localStorage.setItem('bass_user_email', email)
-    setToken(data.accessToken)
+    setToken(tokens.accessToken)
     setUser({ email })
   }, [])
 
