@@ -14,6 +14,8 @@ if (!process.env['DIRECT_URL'] && process.env['DATABASE_URL']) {
 }
 
 // Startup diagnostics — helps identify missing env vars in Railway/cloud
+console.log('[Startup] CWD:', process.cwd());
+console.log('[Startup] ALL ENV keys (', Object.keys(process.env).length, '):', Object.keys(process.env).sort().join(', '));
 console.log(
   '[Startup] ENV check:',
   ['DATABASE_URL', 'DIRECT_URL', 'REDIS_URL', 'NODE_ENV', 'PORT', 'JWT_PRIVATE_KEY']
