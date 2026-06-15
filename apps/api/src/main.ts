@@ -1,4 +1,4 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
@@ -23,22 +23,34 @@ console.log(
     .join(' | '),
 );
 
+// Validate JWT RSA key BEFORE NestJS initialises so JwtModule gets a valid key.
+// If JWT_PRIVATE_KEY is absent or not a valid PEM RSA key (e.g. newlines stripped
+// when pasted into Railway), generate an ephemeral RSA-2048 pair instead.
+(function setupJwtKeys() {
+  const raw = process.env['JWT_PRIVATE_KEY'] ?? '';
+  if (raw) {
+    try {
+      crypto.createPrivateKey(raw);
+      console.log('[Startup] JWT: using configured RSA private key');
+      return;
+    } catch {
+      console.warn('[Startup] JWT: JWT_PRIVATE_KEY is set but is not a valid PEM key — generating ephemeral pair');
+    }
+  }
+  const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
+  process.env['JWT_PRIVATE_KEY'] = privateKey;
+  process.env['JWT_PUBLIC_KEY'] = publicKey;
+  console.log('[Startup] JWT: ephemeral RSA-2048 pair generated (tokens will be invalidated on restart)');
+})();
+
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService<AppConfig>);
-  const jwtConfig = configService.get<AppConfig['jwt']>('jwt');
-
-  // Auto-generate RSA keys in dev if not set
-  if (!jwtConfig?.privateKey) {
-    const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-    });
-    process.env['JWT_PRIVATE_KEY'] = privateKey;
-    process.env['JWT_PUBLIC_KEY'] = publicKey;
-  }
 
   app.use(helmet());
   app.use(compression());
