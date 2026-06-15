@@ -1,19 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
 import { api, ApiError } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
 import MetricCard from '@/components/ui/MetricCard'
-import { Zap, ArrowDownLeft, ArrowUpRight, Key, QrCode, Trash2, Plus, Send } from 'lucide-react'
+import { Zap, ArrowDownLeft, ArrowUpRight, Key, Plus, Send, QrCode, Trash2, X } from 'lucide-react'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface PixStats {
   keysCount: number
   qrCodesCount: number
-  pixIn: { count: number; total: string | number }
-  pixOut: { count: number; total: string | number }
+  pixIn: { count: number; total: string | number | null }
+  pixOut: { count: number; total: string | number | null }
 }
 
 interface PixKey {
@@ -39,22 +39,16 @@ interface PixTransfer {
   createdAt: string
 }
 
-const KEY_TYPE_LABELS: Record<string, string> = {
-  CPF: 'CPF',
-  CNPJ: 'CNPJ',
-  EMAIL: 'E-mail',
-  PHONE: 'Telefone',
-  EVP: 'Chave Aleatória (EVP)',
-}
+const PIX_KEY_TYPES = ['CPF', 'CNPJ', 'EMAIL', 'PHONE', 'EVP'] as const
 
-const TRANSFER_STATUS_COLORS: Record<string, string> = {
+const STATUS_COLORS: Record<string, string> = {
   COMPLETED: 'bg-emerald-100 text-emerald-700',
   PENDING: 'bg-amber-100 text-amber-700',
   FAILED: 'bg-red-100 text-red-700',
   RETURNED: 'bg-slate-100 text-slate-600',
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function PixPage() {
   const { token } = useAuth()
@@ -63,112 +57,45 @@ export default function PixPage() {
   const [keys, setKeys] = useState<PixKey[]>([])
   const [transfers, setTransfers] = useState<PixTransfer[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
-  // Register key form
+  // Form modals
   const [showKeyForm, setShowKeyForm] = useState(false)
-  const [keyForm, setKeyForm] = useState({ accountId: '', keyType: 'EMAIL', keyValue: '' })
-  const [keyFormLoading, setKeyFormLoading] = useState(false)
-  const [keyFormError, setKeyFormError] = useState('')
-
-  // Transfer form
   const [showTransferForm, setShowTransferForm] = useState(false)
-  const [transferForm, setTransferForm] = useState({
-    senderAccountId: '',
-    pixKeyType: 'EMAIL',
-    pixKey: '',
-    amount: '',
-    description: '',
-  })
-  const [transferFormLoading, setTransferFormLoading] = useState(false)
-  const [transferFormError, setTransferFormError] = useState('')
-  const [transferSuccess, setTransferSuccess] = useState('')
-
-  // QR Code form
   const [showQrForm, setShowQrForm] = useState(false)
-  const [qrForm, setQrForm] = useState({ accountId: '', pixKeyId: '', type: 'STATIC', amount: '', description: '' })
-  const [qrFormLoading, setQrFormLoading] = useState(false)
-  const [qrFormError, setQrFormError] = useState('')
-  const [qrPayload, setQrPayload] = useState('')
 
-  const loadData = () => {
+  const fetchAll = useCallback(async () => {
     if (!token) { setLoading(false); return }
     setLoading(true)
-    Promise.all([
-      api.get<PixStats>('/api/v1/pix/stats', token),
-      api.get<PixKey[]>('/api/v1/pix/keys', token),
-      api.get<PixTransfer[]>('/api/v1/pix/transfers', token),
-    ])
-      .then(([s, k, t]) => { setStats(s); setKeys(k); setTransfers(t) })
-      .catch(() => setError('Erro ao carregar dados PIX'))
-      .finally(() => setLoading(false))
-  }
+    setError(null)
+    try {
+      const [s, k, t] = await Promise.all([
+        api.get<PixStats>('/api/v1/pix/stats', token),
+        api.get<PixKey[]>('/api/v1/pix/keys', token),
+        api.get<PixTransfer[]>('/api/v1/pix/transfers', token),
+      ])
+      setStats(s)
+      setKeys(k)
+      setTransfers(t)
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Erro ao carregar dados PIX')
+    } finally {
+      setLoading(false)
+    }
+  }, [token])
 
-  useEffect(() => { loadData() }, [token]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchAll() }, [fetchAll])
 
   const handleDeleteKey = async (id: string) => {
     if (!token) return
     try {
-      const res = await fetch(`/api/v1/pix/keys/${id}`, {
+      await fetch(`/api/v1/pix/keys/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.ok) loadData()
+      fetchAll()
     } catch {
-      setError('Erro ao excluir chave')
-    }
-  }
-
-  const handleRegisterKey = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!token) return
-    setKeyFormLoading(true)
-    setKeyFormError('')
-    try {
-      await api.post('/api/v1/pix/keys', keyForm, token)
-      setShowKeyForm(false)
-      setKeyForm({ accountId: '', keyType: 'EMAIL', keyValue: '' })
-      loadData()
-    } catch (err) {
-      setKeyFormError(err instanceof ApiError ? err.message : 'Erro ao registrar chave')
-    } finally {
-      setKeyFormLoading(false)
-    }
-  }
-
-  const handleTransfer = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!token) return
-    setTransferFormLoading(true)
-    setTransferFormError('')
-    setTransferSuccess('')
-    try {
-      await api.post('/api/v1/pix/transfers', transferForm, token)
-      setTransferSuccess('PIX enviado com sucesso!')
-      setShowTransferForm(false)
-      setTransferForm({ senderAccountId: '', pixKeyType: 'EMAIL', pixKey: '', amount: '', description: '' })
-      loadData()
-    } catch (err) {
-      setTransferFormError(err instanceof ApiError ? err.message : 'Erro ao enviar PIX')
-    } finally {
-      setTransferFormLoading(false)
-    }
-  }
-
-  const handleCreateQrCode = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!token) return
-    setQrFormLoading(true)
-    setQrFormError('')
-    setQrPayload('')
-    try {
-      const result = await api.post<{ payload: string }>('/api/v1/pix/qr-codes', qrForm, token)
-      setQrPayload(result.payload)
-      loadData()
-    } catch (err) {
-      setQrFormError(err instanceof ApiError ? err.message : 'Erro ao gerar QR Code')
-    } finally {
-      setQrFormLoading(false)
+      // ignore
     }
   }
 
@@ -185,15 +112,22 @@ export default function PixPage() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowKeyForm(v => !v)}
-            className="flex items-center gap-1.5 text-sm bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+            onClick={() => setShowKeyForm(true)}
+            className="flex items-center gap-1.5 text-sm bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
           >
             <Key size={14} />
             Registrar Chave
           </button>
           <button
-            onClick={() => setShowTransferForm(v => !v)}
-            className="flex items-center gap-1.5 text-sm bg-bass-600 text-white px-3 py-1.5 rounded-lg hover:bg-bass-700 transition-colors"
+            onClick={() => setShowQrForm(true)}
+            className="flex items-center gap-1.5 text-sm bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            <QrCode size={14} />
+            Gerar QR Code
+          </button>
+          <button
+            onClick={() => setShowTransferForm(true)}
+            className="flex items-center gap-1.5 text-sm bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Send size={14} />
             Enviar PIX
@@ -201,11 +135,11 @@ export default function PixPage() {
         </div>
       </div>
 
+      {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{error}</div>
-      )}
-      {transferSuccess && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-lg p-3">{transferSuccess}</div>
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
+          {error}
+        </div>
       )}
 
       {/* Stats */}
@@ -214,395 +148,526 @@ export default function PixPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="PIX IN"
-            value={stats ? formatCurrency(String(stats.pixIn.total)) : '—'}
-            subtitle={`${stats?.pixIn.count ?? 0} recebimentos`}
+            value={stats ? formatCurrency(stats.pixIn.total ?? 0) : '—'}
+            subtitle={`${stats?.pixIn.count ?? 0} transações`}
             icon={<ArrowDownLeft size={18} className="text-emerald-400" />}
             loading={loading}
+            variant="success"
           />
           <MetricCard
             title="PIX OUT"
-            value={stats ? formatCurrency(String(stats.pixOut.total)) : '—'}
-            subtitle={`${stats?.pixOut.count ?? 0} envios`}
+            value={stats ? formatCurrency(stats.pixOut.total ?? 0) : '—'}
+            subtitle={`${stats?.pixOut.count ?? 0} transações`}
             icon={<ArrowUpRight size={18} className="text-blue-400" />}
             loading={loading}
           />
           <MetricCard
             title="Chaves PIX"
-            value={stats ? String(stats.keysCount) : '—'}
+            value={stats?.keysCount ?? '—'}
             subtitle="Chaves ativas"
             icon={<Key size={18} className="text-slate-400" />}
             loading={loading}
           />
           <MetricCard
             title="QR Codes"
-            value={stats ? String(stats.qrCodesCount) : '—'}
-            subtitle="QR Codes ativos"
+            value={stats?.qrCodesCount ?? '—'}
+            subtitle="QR codes ativos"
             icon={<QrCode size={18} className="text-purple-400" />}
             loading={loading}
           />
         </div>
       </div>
 
-      {/* Register Key Form */}
-      {showKeyForm && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-            <Key size={16} className="text-slate-500" /> Registrar Chave PIX
-          </h3>
-          <form onSubmit={handleRegisterKey} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">ID da Conta</label>
-                <input
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                  placeholder="UUID da conta"
-                  value={keyForm.accountId}
-                  onChange={e => setKeyForm(f => ({ ...f, accountId: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Tipo de Chave</label>
-                <select
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                  value={keyForm.keyType}
-                  onChange={e => setKeyForm(f => ({ ...f, keyType: e.target.value }))}
-                >
-                  {Object.entries(KEY_TYPE_LABELS).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {keyForm.keyType !== 'EVP' && (
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Valor da Chave</label>
-                <input
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                  placeholder={keyForm.keyType === 'EMAIL' ? 'email@exemplo.com' : keyForm.keyType === 'CPF' ? '000.000.000-00' : keyForm.keyType === 'PHONE' ? '+55119XXXXXXXX' : ''}
-                  value={keyForm.keyValue}
-                  onChange={e => setKeyForm(f => ({ ...f, keyValue: e.target.value }))}
-                  required
-                />
-              </div>
-            )}
-            {keyForm.keyType === 'EVP' && (
-              <p className="text-xs text-slate-400">Uma chave aleatória (UUID) será gerada automaticamente.</p>
-            )}
-            {keyFormError && <p className="text-xs text-red-600">{keyFormError}</p>}
-            <div className="flex gap-2 pt-1">
-              <button type="submit" disabled={keyFormLoading} className="bg-bass-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-bass-700 disabled:opacity-50 transition-colors">
-                {keyFormLoading ? 'Registrando...' : 'Registrar'}
-              </button>
-              <button type="button" onClick={() => setShowKeyForm(false)} className="text-sm text-slate-600 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                Cancelar
-              </button>
-            </div>
-          </form>
+      {/* PIX Keys */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Chaves PIX</h2>
+          <button
+            onClick={() => setShowKeyForm(true)}
+            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+          >
+            <Plus size={12} />
+            Adicionar
+          </button>
         </div>
-      )}
-
-      {/* Transfer Form */}
-      {showTransferForm && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-            <Send size={16} className="text-slate-500" /> Enviar PIX
-          </h3>
-          <form onSubmit={handleTransfer} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">ID da Conta Remetente</label>
-                <input
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                  placeholder="UUID da conta"
-                  value={transferForm.senderAccountId}
-                  onChange={e => setTransferForm(f => ({ ...f, senderAccountId: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Tipo de Chave PIX</label>
-                <select
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                  value={transferForm.pixKeyType}
-                  onChange={e => setTransferForm(f => ({ ...f, pixKeyType: e.target.value }))}
-                >
-                  {Object.entries(KEY_TYPE_LABELS).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Chave PIX do Destinatário</label>
-                <input
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                  placeholder="Valor da chave"
-                  value={transferForm.pixKey}
-                  onChange={e => setTransferForm(f => ({ ...f, pixKey: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Valor (BRL)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                  placeholder="0,00"
-                  value={transferForm.amount}
-                  onChange={e => setTransferForm(f => ({ ...f, amount: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Descrição (opcional)</label>
-              <input
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                placeholder="Motivo do pagamento"
-                value={transferForm.description}
-                onChange={e => setTransferForm(f => ({ ...f, description: e.target.value }))}
-              />
-            </div>
-            {transferFormError && <p className="text-xs text-red-600">{transferFormError}</p>}
-            <div className="flex gap-2 pt-1">
-              <button type="submit" disabled={transferFormLoading} className="bg-bass-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-bass-700 disabled:opacity-50 transition-colors">
-                {transferFormLoading ? 'Enviando...' : 'Enviar PIX'}
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          {loading ? (
+            <div className="p-6 text-center text-sm text-slate-400">Carregando...</div>
+          ) : keys.length === 0 ? (
+            <div className="p-8 text-center">
+              <Key size={32} className="text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">Nenhuma chave PIX cadastrada</p>
+              <button
+                onClick={() => setShowKeyForm(true)}
+                className="mt-3 text-sm text-blue-600 hover:underline"
+              >
+                Registrar primeira chave
               </button>
-              <button type="button" onClick={() => setShowTransferForm(false)} className="text-sm text-slate-600 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* QR Code Button + Panel */}
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowQrForm(v => !v)}
-          className="flex items-center gap-1.5 text-sm bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
-        >
-          <QrCode size={14} />
-          Gerar QR Code
-        </button>
-      </div>
-
-      {/* QR Code Form */}
-      {showQrForm && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-            <QrCode size={16} className="text-slate-500" /> Gerar QR Code PIX
-          </h3>
-          {qrPayload ? (
-            <div className="space-y-3">
-              <p className="text-xs text-slate-500">Payload EMV gerado com sucesso. Copie o código abaixo para usar em aplicativos:</p>
-              <textarea
-                readOnly
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono bg-slate-50 h-24 resize-none"
-                value={qrPayload}
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { void navigator.clipboard.writeText(qrPayload) }}
-                  className="text-sm bg-bass-600 text-white px-4 py-2 rounded-lg hover:bg-bass-700 transition-colors"
-                >
-                  Copiar Payload
-                </button>
-                <button
-                  onClick={() => { setQrPayload(''); setShowQrForm(false) }}
-                  className="text-sm text-slate-600 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
-                >
-                  Fechar
-                </button>
-              </div>
             </div>
           ) : (
-            <form onSubmit={handleCreateQrCode} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">ID da Conta</label>
-                  <input
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                    placeholder="UUID da conta"
-                    value={qrForm.accountId}
-                    onChange={e => setQrForm(f => ({ ...f, accountId: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">ID da Chave PIX</label>
-                  <input
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                    placeholder="UUID da chave PIX"
-                    value={qrForm.pixKeyId}
-                    onChange={e => setQrForm(f => ({ ...f, pixKeyId: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Tipo</label>
-                  <select
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                    value={qrForm.type}
-                    onChange={e => setQrForm(f => ({ ...f, type: e.target.value }))}
-                  >
-                    <option value="STATIC">Estático</option>
-                    <option value="DYNAMIC">Dinâmico</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Valor (opcional)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                    placeholder="0,00"
-                    value={qrForm.amount}
-                    onChange={e => setQrForm(f => ({ ...f, amount: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Descrição (opcional)</label>
-                <input
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bass-500"
-                  placeholder="Descrição do pagamento"
-                  value={qrForm.description}
-                  onChange={e => setQrForm(f => ({ ...f, description: e.target.value }))}
-                />
-              </div>
-              {qrFormError && <p className="text-xs text-red-600">{qrFormError}</p>}
-              <div className="flex gap-2 pt-1">
-                <button type="submit" disabled={qrFormLoading} className="bg-bass-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-bass-700 disabled:opacity-50 transition-colors">
-                  {qrFormLoading ? 'Gerando...' : 'Gerar QR Code'}
-                </button>
-                <button type="button" onClick={() => setShowQrForm(false)} className="text-sm text-slate-600 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                  Cancelar
-                </button>
-              </div>
-            </form>
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Tipo</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Chave</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Conta</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Status</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {keys.map((key) => (
+                  <tr key={key.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium">
+                        {key.keyType}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-700">{key.keyValue}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{key.accountId.substring(0, 8)}…</td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">
+                        {key.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => handleDeleteKey(key.id)}
+                        className="text-red-400 hover:text-red-600 transition-colors"
+                        title="Deletar chave"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
-      )}
-
-      {/* PIX Keys */}
-      <div className="bg-white border border-slate-200 rounded-xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-700">Chaves PIX</h3>
-          <button
-            onClick={() => setShowKeyForm(v => !v)}
-            className="flex items-center gap-1 text-xs text-bass-600 hover:text-bass-700 font-medium"
-          >
-            <Plus size={12} /> Nova Chave
-          </button>
-        </div>
-        {loading ? (
-          <div className="p-5 text-sm text-slate-400">Carregando...</div>
-        ) : keys.length === 0 ? (
-          <div className="p-5 text-center">
-            <Key size={32} className="text-slate-200 mx-auto mb-2" />
-            <p className="text-sm text-slate-400">Nenhuma chave PIX cadastrada</p>
-            <button
-              onClick={() => setShowKeyForm(true)}
-              className="mt-3 text-xs text-bass-600 hover:underline"
-            >
-              Registrar primeira chave
-            </button>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs text-slate-400 border-b border-slate-100">
-                <th className="text-left px-5 py-2 font-medium">Tipo</th>
-                <th className="text-left px-5 py-2 font-medium">Chave</th>
-                <th className="text-left px-5 py-2 font-medium hidden sm:table-cell">Criada em</th>
-                <th className="px-5 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {keys.map(k => (
-                <tr key={k.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
-                  <td className="px-5 py-3">
-                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">
-                      {KEY_TYPE_LABELS[k.keyType] ?? k.keyType}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 font-mono text-xs text-slate-700">{k.keyValue}</td>
-                  <td className="px-5 py-3 text-xs text-slate-400 hidden sm:table-cell">
-                    {new Date(k.createdAt).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <button
-                      onClick={() => handleDeleteKey(k.id)}
-                      className="text-slate-300 hover:text-red-500 transition-colors"
-                      title="Excluir chave"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
 
-      {/* Transfers */}
-      <div className="bg-white border border-slate-200 rounded-xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-700">Transferências Recentes</h3>
-          <button
-            onClick={() => setShowTransferForm(v => !v)}
-            className="flex items-center gap-1 text-xs text-bass-600 hover:text-bass-700 font-medium"
+      {/* Recent Transfers */}
+      <div>
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Transferências Recentes</h2>
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          {loading ? (
+            <div className="p-6 text-center text-sm text-slate-400">Carregando...</div>
+          ) : transfers.length === 0 ? (
+            <div className="p-8 text-center">
+              <Zap size={32} className="text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">Nenhuma transferência PIX realizada</p>
+              <button
+                onClick={() => setShowTransferForm(true)}
+                className="mt-3 text-sm text-blue-600 hover:underline"
+              >
+                Fazer primeiro PIX
+              </button>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">E2E ID</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Chave</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Valor</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Data</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {transfers.map((t) => (
+                  <tr key={t.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-mono text-xs text-slate-500">{t.e2eId.substring(0, 20)}…</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{t.pixKeyType}</span>
+                        <span className="text-xs text-slate-700">{t.pixKey}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900">{formatCurrency(t.amount)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                        {t.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {new Date(t.createdAt).toLocaleString('pt-BR')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Modals */}
+      {showKeyForm && token && (
+        <RegisterKeyModal token={token} onClose={() => { setShowKeyForm(false); fetchAll() }} />
+      )}
+      {showTransferForm && token && (
+        <SendPixModal token={token} onClose={() => { setShowTransferForm(false); fetchAll() }} />
+      )}
+      {showQrForm && token && (
+        <GenerateQrModal token={token} pixKeys={keys} onClose={() => { setShowQrForm(false); fetchAll() }} />
+      )}
+    </div>
+  )
+}
+
+// ─── Register Key Modal ───────────────────────────────────────────────────────
+
+function RegisterKeyModal({ token, onClose }: { token: string; onClose: () => void }) {
+  const [keyType, setKeyType] = useState<string>('EMAIL')
+  const [keyValue, setKeyValue] = useState('')
+  const [accountId, setAccountId] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!accountId.trim()) { setError('Informe o ID da conta'); return }
+    setLoading(true)
+    setError(null)
+    try {
+      await api.post('/api/v1/pix/keys', { accountId, keyType, keyValue: keyType === 'EVP' ? '' : keyValue }, token)
+      onClose()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Erro ao registrar chave')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Modal title="Registrar Chave PIX" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>}
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1">ID da Conta</label>
+          <input
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="UUID da conta"
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1">Tipo de Chave</label>
+          <select
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={keyType}
+            onChange={(e) => setKeyType(e.target.value)}
           >
-            <Send size={12} /> Enviar PIX
+            {PIX_KEY_TYPES.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
+        {keyType !== 'EVP' && (
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Valor da Chave</label>
+            <input
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={
+                keyType === 'EMAIL' ? 'email@exemplo.com' :
+                keyType === 'CPF' ? '000.000.000-00' :
+                keyType === 'CNPJ' ? '00.000.000/0000-00' :
+                '+5511999999999'
+              }
+              value={keyValue}
+              onChange={(e) => setKeyValue(e.target.value)}
+              required
+            />
+          </div>
+        )}
+        {keyType === 'EVP' && (
+          <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3">
+            Uma chave EVP (aleatória) será gerada automaticamente pelo sistema.
+          </p>
+        )}
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 border border-slate-200 text-slate-600 rounded-lg py-2 text-sm hover:bg-slate-50">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? 'Registrando…' : 'Registrar Chave'}
           </button>
         </div>
-        {loading ? (
-          <div className="p-5 text-sm text-slate-400">Carregando...</div>
-        ) : transfers.length === 0 ? (
-          <div className="p-5 text-center">
-            <Zap size={32} className="text-slate-200 mx-auto mb-2" />
-            <p className="text-sm text-slate-400">Nenhuma transferência PIX realizada</p>
+      </form>
+    </Modal>
+  )
+}
+
+// ─── Send PIX Modal ───────────────────────────────────────────────────────────
+
+function SendPixModal({ token, onClose }: { token: string; onClose: () => void }) {
+  const [senderAccountId, setSenderAccountId] = useState('')
+  const [pixKeyType, setPixKeyType] = useState('EMAIL')
+  const [pixKey, setPixKey] = useState('')
+  const [amount, setAmount] = useState('')
+  const [description, setDescription] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    try {
+      await api.post('/api/v1/pix/transfers', {
+        senderAccountId,
+        pixKeyType,
+        pixKey,
+        amount,
+        description: description || undefined,
+      }, token)
+      setSuccess(true)
+      setTimeout(onClose, 1500)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Erro ao enviar PIX')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Modal title="Enviar PIX" onClose={onClose}>
+      {success ? (
+        <div className="py-6 text-center">
+          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Zap size={24} className="text-emerald-600" />
           </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs text-slate-400 border-b border-slate-100">
-                <th className="text-left px-5 py-2 font-medium">Chave</th>
-                <th className="text-left px-5 py-2 font-medium hidden sm:table-cell">Tipo</th>
-                <th className="text-right px-5 py-2 font-medium">Valor</th>
-                <th className="text-left px-5 py-2 font-medium">Status</th>
-                <th className="text-left px-5 py-2 font-medium hidden md:table-cell">Data</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transfers.map(t => (
-                <tr key={t.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
-                  <td className="px-5 py-3 font-mono text-xs text-slate-700 max-w-[120px] truncate">{t.pixKey}</td>
-                  <td className="px-5 py-3 hidden sm:table-cell">
-                    <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
-                      {KEY_TYPE_LABELS[t.pixKeyType] ?? t.pixKeyType}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right font-semibold text-slate-800">
-                    {formatCurrency(t.amount)}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TRANSFER_STATUS_COLORS[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                      {t.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-xs text-slate-400 hidden md:table-cell">
-                    {new Date(t.createdAt).toLocaleDateString('pt-BR')}
-                  </td>
-                </tr>
+          <p className="text-sm font-medium text-emerald-700">PIX enviado com sucesso!</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">ID da Conta Remetente</label>
+            <input
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="UUID da conta"
+              value={senderAccountId}
+              onChange={(e) => setSenderAccountId(e.target.value)}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Tipo de Chave</label>
+              <select
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={pixKeyType}
+                onChange={(e) => setPixKeyType(e.target.value)}
+              >
+                {PIX_KEY_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Chave PIX</label>
+              <input
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Chave do destinatário"
+                value={pixKey}
+                onChange={(e) => setPixKey(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Valor (R$)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="0,00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Descrição (opcional)</label>
+            <input
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Motivo do pagamento"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 border border-slate-200 text-slate-600 rounded-lg py-2 text-sm hover:bg-slate-50">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Enviando…' : 'Enviar PIX'}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
+  )
+}
+
+// ─── Generate QR Code Modal ───────────────────────────────────────────────────
+
+function GenerateQrModal({ token, pixKeys, onClose }: { token: string; pixKeys: PixKey[]; onClose: () => void }) {
+  const [accountId, setAccountId] = useState('')
+  const [pixKeyId, setPixKeyId] = useState('')
+  const [type, setType] = useState('STATIC')
+  const [amount, setAmount] = useState('')
+  const [description, setDescription] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<{ payload: string } | null>(null)
+
+  const filteredKeys = accountId ? pixKeys.filter((k) => k.accountId === accountId) : pixKeys
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await api.post<{ payload: string }>('/api/v1/pix/qr-codes', {
+        accountId,
+        pixKeyId,
+        type,
+        amount: amount || undefined,
+        description: description || undefined,
+      }, token)
+      setResult(data)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Erro ao gerar QR code')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Modal title="Gerar QR Code PIX" onClose={onClose}>
+      {result ? (
+        <div className="space-y-4">
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+            <p className="text-xs font-medium text-slate-500 mb-2">Payload EMV</p>
+            <p className="font-mono text-xs text-slate-800 break-all">{result.payload}</p>
+          </div>
+          <button onClick={onClose} className="w-full border border-slate-200 text-slate-600 rounded-lg py-2 text-sm hover:bg-slate-50">
+            Fechar
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">ID da Conta</label>
+            <input
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="UUID da conta"
+              value={accountId}
+              onChange={(e) => { setAccountId(e.target.value); setPixKeyId('') }}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Chave PIX</label>
+            <select
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={pixKeyId}
+              onChange={(e) => setPixKeyId(e.target.value)}
+              required
+            >
+              <option value="">Selecione uma chave...</option>
+              {filteredKeys.map((k) => (
+                <option key={k.id} value={k.id}>{k.keyType}: {k.keyValue}</option>
               ))}
-            </tbody>
-          </table>
-        )}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Tipo</label>
+            <div className="flex gap-2">
+              {['STATIC', 'DYNAMIC'].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setType(t)}
+                  className={`flex-1 py-2 rounded-lg text-sm border transition-colors ${
+                    type === t
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {t === 'STATIC' ? 'Estático' : 'Dinâmico'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Valor (R$) — opcional para estático</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="0,00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Descrição (opcional)</label>
+            <input
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Referência do pagamento"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 border border-slate-200 text-slate-600 rounded-lg py-2 text-sm hover:bg-slate-50">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Gerando…' : 'Gerar QR Code'}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
+  )
+}
+
+// ─── Modal Wrapper ────────────────────────────────────────────────────────────
+
+function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="px-5 py-4">{children}</div>
       </div>
     </div>
   )

@@ -20,5 +20,6 @@ export class CreatePixQrCodeDto {
   description?: string;
 
   @IsOptional()
+  @IsString()
   expiresInMinutes?: number;
 }

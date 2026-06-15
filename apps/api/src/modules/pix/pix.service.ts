@@ -90,7 +90,6 @@ export class PixService {
   // ─── PIX Transfers ────────────────────────────────────────────────────────
 
   async initiateTransfer(dto: CreatePixTransferDto, actor: AuthUser, ipAddress: string) {
-    void ipAddress; // reserved for audit logging
     const amount = new Prisma.Decimal(dto.amount);
     if (amount.lte(0)) throw new BadRequestException('Valor deve ser maior que zero');
 
@@ -104,7 +103,7 @@ export class PixService {
     const balance = await this.prisma.accountBalance.findUnique({
       where: { accountId: dto.senderAccountId },
     });
-    if (!balance || new Prisma.Decimal(balance.availableAmount).lt(amount)) {
+    if (!balance || new Prisma.Decimal(balance.availableAmount.toString()).lt(amount)) {
       throw new UnprocessableEntityException('Saldo insuficiente');
     }
 
