@@ -44,9 +44,11 @@ command -v git  >/dev/null 2>&1 || { echo "❌ Git não encontrado."; exit 1; }
 # ────────────────────────────────────────────────────────────
 # Instalar CLIs
 # ────────────────────────────────────────────────────────────
-echo "📦 Instalando Railway e Vercel CLI..."
-npm install -g @railway/cli vercel --silent 2>/dev/null || \
-  npm install -g @railway/cli vercel 2>&1 | tail -3
+echo "📦 Verificando Railway e Vercel CLI..."
+if ! command -v railway >/dev/null 2>&1 || ! command -v vercel >/dev/null 2>&1; then
+  sudo npm install -g @railway/cli vercel
+fi
+echo "✅ CLIs prontas"
 
 # ────────────────────────────────────────────────────────────
 # Gerar chaves RSA para JWT
