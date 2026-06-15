@@ -39,3 +39,4 @@ apps/api/prisma/*.db-journal
 
 # Test coverage
 coverage
+.claude/
