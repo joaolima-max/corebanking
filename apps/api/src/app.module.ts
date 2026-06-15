@@ -16,6 +16,7 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { PixModule } from './modules/pix/pix.module';
 
 @Module({
   controllers: [AppController],
@@ -33,6 +34,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     AccountsModule,
     LedgerModule,
     DashboardModule,
+    PixModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },

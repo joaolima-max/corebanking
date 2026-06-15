@@ -85,6 +85,38 @@ enum AuditAction {
   ROLE_REVOKE
 }
 
+enum PixKeyType {
+  CPF
+  CNPJ
+  EMAIL
+  PHONE
+  EVP
+}
+
+enum PixKeyStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+enum PixTransferStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  RETURNED
+}
+
+enum PixQrCodeType {
+  STATIC
+  DYNAMIC
+}
+
+enum PixQrCodeStatus {
+  ACTIVE
+  EXPIRED
+  PAID
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Organizations
 // ─────────────────────────────────────────────────────────────────────────────
@@ -108,6 +140,9 @@ model Organization {
   ledgerAccounts LedgerAccount[]
   journalEntries JournalEntry[]
   auditLogs      AuditLog[]
+  pixKeys        PixKey[]
+  pixTransfers   PixTransfer[]
+  pixQrCodes     PixQrCode[]
 
   @@index([type])
   @@index([parentId])
@@ -274,7 +309,11 @@ model Account {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  balance AccountBalance?
+  balance              AccountBalance?
+  pixKeys              PixKey[]
+  pixTransfersSent     PixTransfer[]   @relation("PixSender")
+  pixTransfersReceived PixTransfer[]   @relation("PixReceiver")
+  pixQrCodes           PixQrCode[]
 
   @@index([orgId, type])
   @@index([orgId, status])
@@ -338,7 +377,8 @@ model JournalEntry {
   createdByUser  User               @relation(fields: [createdBy], references: [id])
   createdAt      DateTime           @default(now()) @map("created_at")
 
-  lines JournalEntryLine[]
+  lines        JournalEntryLine[]
+  pixTransfers PixTransfer[]
 
   @@index([orgId, postedAt])
   @@index([orgId, createdAt])
@@ -362,4 +402,81 @@ model JournalEntryLine {
   @@index([ledgerAccountId])
   @@index([ledgerAccountId, direction])
   @@map("journal_entry_lines")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIX
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PixKey {
+  id        String       @id @default(uuid())
+  orgId     String       @map("org_id")
+  accountId String       @map("account_id")
+  keyType   PixKeyType   @map("key_type")
+  keyValue  String       @map("key_value")
+  status    PixKeyStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  org      Organization @relation(fields: [orgId], references: [id])
+  account  Account      @relation(fields: [accountId], references: [id])
+  qrCodes  PixQrCode[]
+
+  @@unique([keyType, keyValue, status])
+  @@index([orgId])
+  @@index([accountId])
+  @@map("pix_keys")
+}
+
+model PixTransfer {
+  id                String            @id @default(uuid())
+  orgId             String            @map("org_id")
+  senderAccountId   String            @map("sender_account_id")
+  receiverAccountId String?           @map("receiver_account_id")
+  amount            Decimal           @db.Decimal(18, 2)
+  currency          String            @default("BRL")
+  status            PixTransferStatus @default(PENDING)
+  e2eId             String            @unique @map("e2e_id")
+  pixKey            String            @map("pix_key")
+  pixKeyType        PixKeyType        @map("pix_key_type")
+  description       String?
+  journalEntryId    String?           @map("journal_entry_id")
+  errorMessage      String?           @map("error_message")
+  returnedAt        DateTime?         @map("returned_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  org             Organization  @relation(fields: [orgId], references: [id])
+  senderAccount   Account       @relation("PixSender", fields: [senderAccountId], references: [id])
+  receiverAccount Account?      @relation("PixReceiver", fields: [receiverAccountId], references: [id])
+  journalEntry    JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  @@index([orgId, createdAt])
+  @@index([senderAccountId])
+  @@index([receiverAccountId])
+  @@map("pix_transfers")
+}
+
+model PixQrCode {
+  id          String          @id @default(uuid())
+  orgId       String          @map("org_id")
+  accountId   String          @map("account_id")
+  pixKeyId    String          @map("pix_key_id")
+  type        PixQrCodeType
+  amount      Decimal?        @db.Decimal(18, 2)
+  description String?
+  payload     String
+  txId        String?         @map("tx_id")
+  status      PixQrCodeStatus @default(ACTIVE)
+  expiresAt   DateTime?       @map("expires_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  org     Organization @relation(fields: [orgId], references: [id])
+  account Account      @relation(fields: [accountId], references: [id])
+  pixKey  PixKey       @relation(fields: [pixKeyId], references: [id])
+
+  @@index([orgId])
+  @@index([accountId])
+  @@index([pixKeyId])
+  @@map("pix_qr_codes")
 }
