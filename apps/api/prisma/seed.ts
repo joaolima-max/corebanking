@@ -31,10 +31,12 @@ const SYSTEM_PERMISSIONS = [
   { resource: 'accounts', action: 'create', scopeType: 'own_org' },
   { resource: 'accounts', action: 'read', scopeType: 'own_org' },
   { resource: 'accounts', action: 'block', scopeType: 'own_org' },
+  { resource: 'accounts', action: 'update', scopeType: 'own_org' },
   { resource: 'ledger', action: 'post', scopeType: 'own_org' },
   { resource: 'ledger', action: 'read', scopeType: 'own_org' },
   { resource: 'ledger', action: 'void', scopeType: 'own_org' },
   { resource: 'ledger', action: 'trial_balance', scopeType: 'own_org' },
+  { resource: 'dashboard', action: 'read', scopeType: 'own_org' },
 ];
 
 const CHART_OF_ACCOUNTS = [

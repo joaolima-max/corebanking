@@ -34,6 +34,9 @@ jobs:
       - name: Type check (shared)
         run: pnpm --filter @bass/shared exec tsc --noEmit
 
+      - name: Type check (Web)
+        run: pnpm --filter web exec tsc --noEmit
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
