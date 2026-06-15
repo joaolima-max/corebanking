@@ -24,6 +24,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
       isGlobal: true,
       load: [configuration],
       validationSchema: configValidationSchema,
+      ignoreEnvFile: true,
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     PrismaModule,

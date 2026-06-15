@@ -8,6 +8,19 @@ import * as crypto from 'crypto';
 import { AppModule } from './app.module';
 import type { AppConfig } from './config/configuration';
 
+// If DIRECT_URL is not explicitly set, fall back to DATABASE_URL (same connection for Railway)
+if (!process.env['DIRECT_URL'] && process.env['DATABASE_URL']) {
+  process.env['DIRECT_URL'] = process.env['DATABASE_URL'];
+}
+
+// Startup diagnostics — helps identify missing env vars in Railway/cloud
+console.log(
+  '[Startup] ENV check:',
+  ['DATABASE_URL', 'DIRECT_URL', 'REDIS_URL', 'NODE_ENV', 'PORT', 'JWT_PRIVATE_KEY']
+    .map((k) => `${k}=${process.env[k] ? '✓' : '✗ MISSING'}`)
+    .join(' | '),
+);
+
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
