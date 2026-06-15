@@ -6,7 +6,9 @@ WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @bass/shared build
-RUN pnpm --filter api exec prisma generate
+WORKDIR /app/apps/api
+RUN npx prisma generate
+WORKDIR /app
 RUN pnpm --filter api build
 
 FROM base AS runner
