@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+apscheduler
+supabase
+anthropic
+yfinance
+feedparser
+requests
+python-dotenv
