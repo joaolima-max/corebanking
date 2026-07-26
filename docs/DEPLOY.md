@@ -63,6 +63,24 @@ Coloque um reverse proxy (Nginx/Traefik + Let's Encrypt) na frente para HTTPS e 
 
 ---
 
+## Banco no Supabase (opcional, recomendado)
+
+O projeto já é compatível com Supabase (o Prisma usa `DATABASE_URL` para queries e
+`DIRECT_URL` para migrations). Supabase substitui **apenas o PostgreSQL** — a API continua
+rodando no Railway/Render, e o **Redis** vem de outro lugar (ex.: Upstash, grátis).
+
+No painel do Supabase → **Project Settings → Database → Connection string**:
+- `DATABASE_URL` = string do **Connection pooler** (porta **6543**, modo *Transaction*), acrescente `?pgbouncer=true&connection_limit=1`
+- `DIRECT_URL` = string da **Direct connection** (porta **5432**)
+
+Depois rode as migrations normalmente (`prisma migrate deploy` usa a `DIRECT_URL`) e o seed.
+Extensões `uuid-ossp`/`pgcrypto` já vêm disponíveis no Supabase.
+
+**Redis:** crie um banco grátis no **Upstash** (upstash.com) e use a URL dele em `REDIS_URL`.
+
+Resumo dos provedores nesse cenário: **Supabase** (Postgres) + **Upstash** (Redis) +
+**Railway/Render** (API) + **Vercel** (frontends).
+
 ## Variáveis de ambiente (resumo)
 
 | Serviço | Variável | Obrigatória | Observação |
