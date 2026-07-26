@@ -1,6 +1,6 @@
 'use client'
 
-import { PageHeader, Card, SectionTitle, StatGrid, Stat, Chip } from '@/components/ui'
+import { PageHeader, Card, SectionTitle, StatGrid, Stat, Chip, Soon } from '@/components/ui'
 
 const RAILS = [
   { n: 'PIX (BR)', m: 'instantâneo · DICT · SPI', h: 99.9 },
@@ -14,7 +14,7 @@ const RAILS = [
 export default function Gateway() {
   return (
     <div>
-      <PageHeader title="Gateway instantâneo" subtitle="Pagamento em tempo real multi-moeda · Mojaloop · sem cartão" action={<button className="btn primary">Adicionar rail</button>} />
+      <PageHeader title="Gateway instantâneo" subtitle="Pagamento em tempo real multi-moeda · Mojaloop · sem cartão" action={<Soon label="Adicionar rail" note="Cadastro de rail instantâneo — será ligado ao gateway (Mojaloop/InstantPaymentPort) nesta fase." />} />
       <StatGrid cols={4}>
         <Stat label="Rails instantâneos" value="9" sub="saudáveis" tone="pos" />
         <Stat label="Moedas" value="10" sub="fiat + stablecoin" tone="muted" />

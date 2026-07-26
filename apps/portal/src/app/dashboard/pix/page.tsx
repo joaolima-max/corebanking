@@ -1,6 +1,6 @@
 'use client'
 
-import { PageHeader, Card, SectionTitle, StatGrid, Stat, DataTable, Column, Chip, asArray } from '@/components/ui'
+import { PageHeader, Card, SectionTitle, StatGrid, Stat, DataTable, Column, Chip, Soon, asArray } from '@/components/ui'
 import { useApi } from '@/lib/hooks'
 
 interface PixKey { id: string; keyType: string; keyValue: string; status: string }
@@ -30,7 +30,7 @@ export default function Pix() {
 
   return (
     <div>
-      <PageHeader title="Receber (PIX)" subtitle="Pagamento instantâneo · chaves, cobranças (QR) e transferências" action={<button className="btn primary">＋ Nova cobrança</button>} />
+      <PageHeader title="Receber (PIX)" subtitle="Pagamento instantâneo · chaves, cobranças (QR) e transferências" action={<Soon label="＋ Nova cobrança" note="Emissão de cobrança PIX (QR dinâmico) — será ligada a /pix/qr-codes nesta fase." />} />
 
       <StatGrid cols={4}>
         <Stat label="Chaves ativas" value={keys.isLoading ? '…' : String(keyRows.length)} sub="do tenant" tone="muted" />

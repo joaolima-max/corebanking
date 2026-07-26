@@ -1,6 +1,6 @@
 'use client'
 
-import { PageHeader, Card, SectionTitle, DataTable, Column, Chip, asArray } from '@/components/ui'
+import { PageHeader, Card, SectionTitle, DataTable, Column, Chip, Soon, asArray } from '@/components/ui'
 import { useMe, useApi } from '@/lib/hooks'
 
 interface Account { id: string; name: string; type: string; currency: string; status: string; balance?: string }
@@ -20,7 +20,7 @@ export default function Contas() {
 
   return (
     <div>
-      <PageHeader title="Contas & Saldos" subtitle="Wallets e contas do seu tenant · saldo derivado do ledger" action={<button className="btn primary">Nova conta</button>} />
+      <PageHeader title="Saldos & Wallets" subtitle="Wallets e contas do seu tenant · saldo derivado do ledger" action={<Soon label="Nova conta" note="Abertura de nova conta/wallet — será ligada a /accounts nesta fase." />} />
       <Card>
         <SectionTitle badge={<Chip tone="acc">ao vivo /accounts</Chip>}>Contas</SectionTitle>
         <DataTable columns={cols} rows={rows} loading={accounts.isLoading} error={accounts.error} emptyText="Nenhuma conta cadastrada ainda." />

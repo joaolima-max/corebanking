@@ -27,15 +27,15 @@ export default function VisaoGlobal() {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
       <PageHeader title="Visão global" subtitle={<>Gestão de todos os clientes · ao vivo de <span className="num">/api/v1/admin/clients</span></>} action={<button className="btn primary">＋ Provisionar cliente</button>} />
       <StatGrid cols={4}>
-        <Stat label="Clientes (total)" value={clients.isLoading ? '…' : String(rows.length)} tone="muted" />
+        <Stat label="Submerchants (total)" value={clients.isLoading ? '…' : String(rows.length)} tone="muted" />
         <Stat label="Ativos" value={clients.isLoading ? '…' : String(active)} tone="pos" sub="operando" />
-        <Stat label="White-labels" value={clients.isLoading ? '…' : String(wl)} />
+        <Stat label="Merchants" value={clients.isLoading ? '…' : String(wl)} />
         <Stat label="Gateway" value="99,98%" sub="● operacional" tone="pos" />
       </StatGrid>
       <Card style={{ marginTop: 14 }}>
         <SectionTitle badge={<Chip tone="acc">escopo GLOBAL</Chip>}>
-          Clientes
-          <Link href="/dashboard/clientes" className="btn" style={{ marginLeft: 'auto', padding: '5px 10px', fontSize: 12 }}>Ver todos →</Link>
+          Submerchants
+          <Link href="/dashboard/submerchants" className="btn" style={{ marginLeft: 'auto', padding: '5px 10px', fontSize: 12 }}>Ver todos →</Link>
         </SectionTitle>
         <DataTable columns={cols} rows={rows.slice(0, 8)} loading={clients.isLoading} error={clients.error} emptyText="Nenhum cliente." />
       </Card>

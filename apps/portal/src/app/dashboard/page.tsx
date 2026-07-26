@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { PageHeader, Card, SectionTitle, StatGrid, Stat, Chip, DataTable, Column, asArray } from '@/components/ui'
 import { useMe, useApi } from '@/lib/hooks'
 
@@ -27,7 +28,7 @@ export default function Inicio() {
       <PageHeader
         title="Início"
         subtitle="Pagamentos instantâneos · liquidação em tempo real · dados ao vivo"
-        action={<button className="btn primary">＋ Nova cobrança PIX</button>}
+        action={<Link className="btn primary" href="/dashboard/pix">＋ Nova cobrança PIX</Link>}
       />
 
       <StatGrid cols={4}>

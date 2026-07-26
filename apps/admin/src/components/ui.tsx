@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
 
 /* ---------- data helpers ---------- */
 // The API wraps lists in various shapes; normalize to an array.
@@ -44,8 +44,8 @@ export function StatGrid({ children, cols = 4 }: { children: ReactNode; cols?: n
   return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols},1fr)`, gap: 14 }}>{children}</div>
 }
 
-export function Stat({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: 'accent' | 'pos' | 'neg' | 'muted' }) {
-  const color = tone === 'pos' ? 'var(--pos)' : tone === 'neg' ? 'var(--neg)' : tone === 'muted' ? 'var(--text-3)' : 'var(--accent)'
+export function Stat({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: 'accent' | 'pos' | 'neg' | 'muted' | 'warn' }) {
+  const color = tone === 'pos' ? 'var(--pos)' : tone === 'neg' ? 'var(--neg)' : tone === 'warn' ? 'var(--warn)' : tone === 'muted' ? 'var(--text-3)' : 'var(--accent)'
   return (
     <div className="card" style={{ padding: '15px 16px' }}>
       <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>{label}</div>
@@ -116,4 +116,48 @@ export function State({ kind, text }: { kind: 'loading' | 'empty' | 'error'; tex
   const color = kind === 'error' ? 'var(--neg)' : 'var(--text-3)'
   const label = text ?? (kind === 'loading' ? 'Carregando…' : kind === 'empty' ? 'Sem dados.' : 'Erro.')
   return <div style={{ padding: '24px 4px', color, fontSize: 13, textAlign: 'center' }}>{label}</div>
+}
+
+export function Field({ k, v, mono }: { k: string; v: ReactNode; mono?: boolean }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>{k}</div>
+      <div className={mono ? 'num' : undefined} style={{ fontSize: 13, marginTop: 3 }}>{v}</div>
+    </div>
+  )
+}
+
+export function Tabs({ tabs, active, onChange }: { tabs: { key: string; label: string }[]; active: string; onChange: (k: string) => void }) {
+  return (
+    <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border-soft)', marginBottom: 16, overflowX: 'auto' }}>
+      {tabs.map((t) => (
+        <button
+          key={t.key}
+          onClick={() => onChange(t.key)}
+          style={{
+            border: 0, background: 'transparent', cursor: 'pointer', font: 'inherit', fontSize: 13, fontWeight: 600,
+            padding: '9px 12px', color: active === t.key ? 'var(--text)' : 'var(--text-3)',
+            borderBottom: active === t.key ? '2px solid var(--accent)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap',
+          }}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Non-dead action button: performs `onClick` if given, else shows an inline "em breve" note. */
+export function Soon({ label, note }: { label: string; note?: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <button className="btn" onClick={() => setOpen((o) => !o)}>{label}</button>
+      {open && (
+        <span role="status" style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 10, background: 'var(--raised)', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 11px', fontSize: 11.5, color: 'var(--text-2)', width: 240, boxShadow: '0 10px 30px -10px #000' }}>
+          {note ?? 'Em breve — ação será ligada à API nesta fase.'}
+        </span>
+      )}
+    </span>
+  )
 }

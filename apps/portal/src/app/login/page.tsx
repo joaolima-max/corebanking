@@ -71,9 +71,6 @@ export default function LoginPage() {
             {loading ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
-        <p style={{ textAlign: 'center', color: 'var(--text-3)', fontSize: 11, marginTop: 14 }}>
-          Ambiente do Cliente · tenant-scoped (/api/v1/*)
-        </p>
       </motion.div>
     </div>
   )

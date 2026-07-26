@@ -71,9 +71,6 @@ export default function LoginPage() {
             {loading ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
-        <p style={{ textAlign: 'center', color: 'var(--text-3)', fontSize: 11, marginTop: 14 }}>
-          Requer escopo GLOBAL · superfície /api/v1/admin/*
-        </p>
       </motion.div>
     </div>
   )
