@@ -126,7 +126,9 @@ flowchart LR
       e `apps/portal` (mint, tenant-scoped, consome `/api/v1/*`) — Next.js 14 + Tailwind +
       React Query + Framer Motion, dark, com login real e overview ligada à API. Ambos buildam
       (`next build`) e passam e2e de login no browser (10/10): portal carrega conta + ledger,
-      admin lista todos os clientes. O `apps/web` legado permanece até ser aposentado.
+      admin lista todos os clientes. O `apps/web` legado foi **aposentado** (removido); o
+      monorepo passa a ter apenas `apps/api`, `apps/admin` e `apps/portal`. CI (`ci.yml`,
+      `deploy.yml`) atualizado para type-check dos dois novos apps.
 - [ ] Introduzir `InstantPaymentPort` e mover o PIX atual para trás dele; adicionar SPEI e Mojaloop.
 - [ ] Migrar controllers tenant para consumir `req.tenantId` (exposto pelo `ScopeGuard`) em vez de `orgId` de query.
 

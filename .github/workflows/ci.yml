@@ -34,8 +34,11 @@ jobs:
       - name: Type check (shared)
         run: pnpm --filter @bass/shared exec tsc --noEmit
 
-      - name: Type check (Web)
-        run: pnpm --filter web exec tsc --noEmit
+      - name: Type check (Admin)
+        run: pnpm --filter @bass/admin exec tsc --noEmit
+
+      - name: Type check (Portal)
+        run: pnpm --filter @bass/portal exec tsc --noEmit
 
   unit-tests:
     name: Unit Tests
