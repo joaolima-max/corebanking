@@ -73,6 +73,27 @@ Coloque um reverse proxy (Nginx/Traefik + Let's Encrypt) na frente para HTTPS e 
 | API | `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` | não (MVP) | PEM RSA; se vazio, par efêmero |
 | Admin/Portal | `NEXT_PUBLIC_API_URL` | sim | URL pública da API (lida no build) |
 
+## Deploy automático no Vercel (GitHub Actions)
+
+Já existe o workflow `.github/workflows/deploy-vercel.yml` que publica os 3 frontends
+(Core `apps/admin`, Finance Wirex, Finance Payfinex) a cada push. Para ativar, adicione em
+**GitHub → repo → Settings → Secrets and variables → Actions**:
+
+| Secret | Onde obter |
+|---|---|
+| `VERCEL_TOKEN` | Vercel → Account Settings → Tokens |
+| `VERCEL_ORG_ID` | Vercel → Settings → General (ou `.vercel/project.json` após `vercel link`) |
+| `VERCEL_PROJECT_ID_CORE` | ID do projeto Vercel do `apps/admin` |
+| `VERCEL_PROJECT_ID_WIREX` | ID do projeto Vercel do `apps/finance-wirex` |
+| `VERCEL_PROJECT_ID_PAYFINEX` | ID do projeto Vercel do `apps/finance-payfinex` |
+
+Crie os 3 projetos no Vercel uma vez (pode ser importando o repo e escolhendo o Root Directory
+de cada app, ou `vercel link` dentro de cada pasta). Em cada projeto defina a env
+`NEXT_PUBLIC_API_URL` = URL pública da API. Sem os secrets, o workflow apenas avisa e pula.
+
+> Alternativa sem CI: a **integração Git nativa do Vercel** também faz deploy automático a cada
+> push — basta importar o repo e criar 1 projeto por app (Root Directory). Não precisa de secrets.
+
 ## Checklist pós-deploy
 - [ ] `GET https://<api>/api/health` → `{"status":"ok"}`
 - [ ] Swagger em `https://<api>/api/docs`

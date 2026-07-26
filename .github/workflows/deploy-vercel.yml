@@ -1,0 +1,64 @@
+name: Deploy frontends (Vercel)
+
+# Publica os 3 frontends (Core, Finance Wirex, Finance Payfinex) no Vercel a cada push.
+# Roda nos runners do GitHub (que alcançam o Vercel). Requer os secrets abaixo no repo:
+#   VERCEL_TOKEN               (Vercel > Account Settings > Tokens)
+#   VERCEL_ORG_ID              (Vercel > Settings > General, ou .vercel/project.json após `vercel link`)
+#   VERCEL_PROJECT_ID_CORE
+#   VERCEL_PROJECT_ID_WIREX
+#   VERCEL_PROJECT_ID_PAYFINEX
+# Em cada projeto Vercel, defina a env NEXT_PUBLIC_API_URL = URL pública da API (Railway).
+
+on:
+  push:
+    branches: [claude/global-financial-platform-kz6gnp, main]
+    paths:
+      - 'apps/admin/**'
+      - 'apps/finance-wirex/**'
+      - 'apps/finance-payfinex/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vercel-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: admin
+            project_id_secret: VERCEL_PROJECT_ID_CORE
+          - app: finance-wirex
+            project_id_secret: VERCEL_PROJECT_ID_WIREX
+          - app: finance-payfinex
+            project_id_secret: VERCEL_PROJECT_ID_PAYFINEX
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+      - name: Deploy ${{ matrix.app }}
+        working-directory: apps/${{ matrix.app }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets[matrix.project_id_secret] }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::warning::Secrets do Vercel ausentes para ${{ matrix.app }} — pulando. Configure VERCEL_TOKEN/VERCEL_ORG_ID/${{ matrix.project_id_secret }}."
+            exit 0
+          fi
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
