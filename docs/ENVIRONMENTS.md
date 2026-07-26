@@ -122,7 +122,11 @@ flowchart LR
 - [x] **Backend — superfície admin (feito).** `apps/api/src/admin/` com `AdminModule` e
       `AdminClientsController` em `/api/v1/admin/clients` (`@AdminScope`, reusa `OrganizationsService`).
       Verificado: admin GLOBAL lista todos os tenants (200); sem token 401; superfície tenant intacta.
-- [ ] Dividir `apps/web` em `apps/admin` e `apps/portal` (F3, Next.js + shadcn).
+- [x] **Frontend — split feito.** `apps/admin` (índigo, escopo GLOBAL, consome `/api/v1/admin/*`)
+      e `apps/portal` (mint, tenant-scoped, consome `/api/v1/*`) — Next.js 14 + Tailwind +
+      React Query + Framer Motion, dark, com login real e overview ligada à API. Ambos buildam
+      (`next build`) e passam e2e de login no browser (10/10): portal carrega conta + ledger,
+      admin lista todos os clientes. O `apps/web` legado permanece até ser aposentado.
 - [ ] Introduzir `InstantPaymentPort` e mover o PIX atual para trás dele; adicionar SPEI e Mojaloop.
 - [ ] Migrar controllers tenant para consumir `req.tenantId` (exposto pelo `ScopeGuard`) em vez de `orgId` de query.
 
