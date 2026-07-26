@@ -112,10 +112,18 @@ flowchart LR
   INST --> MJ[Mojaloop / PIX / SPEI / Stablecoin]
 ```
 
-## 6. Próximos passos de implementação
-1. Criar `common/decorators/scope.decorator.ts` + `common/guards/tenant-scope.guard.ts` (não-disruptivo).
-2. Extrair controllers administrativos para `apps/api/src/admin/*` sob `/api/v1/admin`.
-3. Dividir `apps/web` em `apps/admin` e `apps/portal` (F3, Next.js + shadcn).
-4. Introduzir `InstantPaymentPort` e mover o PIX atual para trás dele; adicionar SPEI e Mojaloop.
+## 6. Estado da implementação
 
-*Este documento organiza a separação; a implementação segue o roadmap por fases do ARCHITECTURE.md.*
+- [x] **Backend — separação de escopo (feito).** `common/decorators/scope.decorator.ts` (`@AdminScope`)
+      + `common/guards/scope.guard.ts` (registrado como `APP_GUARD` após Permissions).
+      O JWT passou a carregar `scopes` (derivado de `role.scope`); `AuthUser.scopes` e a
+      `jwt.strategy` propagam o claim. Backward-compatible (tokens antigos sem `scopes` não
+      sofrem isolamento). Cobertura: `scope.guard.spec.ts` (9 testes).
+- [x] **Backend — superfície admin (feito).** `apps/api/src/admin/` com `AdminModule` e
+      `AdminClientsController` em `/api/v1/admin/clients` (`@AdminScope`, reusa `OrganizationsService`).
+      Verificado: admin GLOBAL lista todos os tenants (200); sem token 401; superfície tenant intacta.
+- [ ] Dividir `apps/web` em `apps/admin` e `apps/portal` (F3, Next.js + shadcn).
+- [ ] Introduzir `InstantPaymentPort` e mover o PIX atual para trás dele; adicionar SPEI e Mojaloop.
+- [ ] Migrar controllers tenant para consumir `req.tenantId` (exposto pelo `ScopeGuard`) em vez de `orgId` de query.
+
+*A implementação segue o roadmap por fases do ARCHITECTURE.md.*

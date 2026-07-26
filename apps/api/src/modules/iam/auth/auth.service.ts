@@ -200,6 +200,7 @@ export class AuthService {
     if (!user) throw new NotFoundException('User not found');
 
     const roles = [...new Set(user.userRoles.map((ur) => ur.role.slug))];
+    const scopes = [...new Set(user.userRoles.map((ur) => ur.role.scope))];
     const permissions = [
       ...new Set(
         user.userRoles.flatMap((ur) =>
@@ -218,6 +219,7 @@ export class AuthService {
       email: user.email,
       orgId: user.orgId,
       roles,
+      scopes,
       permissions,
       jti,
     };

@@ -12,6 +12,7 @@ interface JwtPayload {
   orgId: string;
   roles: string[];
   permissions: string[];
+  scopes?: string[];
   jti: string;
 }
 
@@ -51,6 +52,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       status: user.status,
       roles: payload.roles,
       permissions: payload.permissions,
+      scopes: payload.scopes,
     };
   }
 }

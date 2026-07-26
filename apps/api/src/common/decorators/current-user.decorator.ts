@@ -9,6 +9,11 @@ export interface AuthUser {
   status: string;
   roles: string[];
   permissions: string[];
+  /**
+   * RBAC scopes derived from the user's roles (GLOBAL, ORGANIZATION, WHITE_LABEL, MERCHANT).
+   * Optional for backward compatibility: tokens minted before scope separation omit it.
+   */
+  scopes?: string[];
 }
 
 export const CurrentUser = createParamDecorator(
