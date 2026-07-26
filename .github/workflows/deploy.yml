@@ -47,8 +47,11 @@ jobs:
       - name: Type check Admin
         run: pnpm --filter @bass/admin exec tsc --noEmit
 
-      - name: Type check Portal
-        run: pnpm --filter @bass/portal exec tsc --noEmit
+      - name: Type check Finance Wirex
+        run: pnpm --filter @bass/finance-wirex exec tsc --noEmit
+
+      - name: Type check Finance Payfinex
+        run: pnpm --filter @bass/finance-payfinex exec tsc --noEmit
 
       - name: Unit tests
         run: pnpm --filter api test --no-coverage

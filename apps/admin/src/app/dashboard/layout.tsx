@@ -62,7 +62,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   if (isHydrating || !isAuthenticated) return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: 'var(--text-3)' }}>Carregando…</div>
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '252px 1fr', minHeight: '100vh' }}>
-      <Sidebar brandName="Bass" brandSub="Financial Core" markChar="B" markColor="#fff" groups={GROUPS} />
+      <Sidebar brandName="Core" brandSub="Administrativo" markChar="B" markColor="#fff" groups={GROUPS} />
       <main style={{ minWidth: 0, padding: '22px 24px 60px', maxWidth: 1520 }}>{children}</main>
     </div>
   )

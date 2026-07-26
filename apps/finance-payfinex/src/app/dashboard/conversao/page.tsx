@@ -1,14 +1,21 @@
 'use client'
+
 import { useState } from 'react'
-import { PageHeader, Card, SectionTitle, StatGrid, Stat, Chip, Soon } from '@/components/ui'
-const CCY = ['BRL', 'USDC', 'USD', 'PYG', 'MXN']
+import { PageHeader, Card, SectionTitle, StatGrid, Stat, Soon } from '@/components/ui'
+
+const CCY = ['BRL', 'USD']
+
 export default function Conversao() {
-  const [from, setFrom] = useState('BRL'); const [to, setTo] = useState('USDC'); const [amt, setAmt] = useState('')
+  const [from, setFrom] = useState('BRL')
+  const [to, setTo] = useState('USD')
+  const [amt, setAmt] = useState('')
   return (
     <div>
-      <PageHeader title="Conversão & FX" subtitle="Converta entre moedas e stablecoins · conversão instantânea" />
+      <PageHeader title="Converter (BRL ⇄ USD)" subtitle="Câmbio entre Real e Dólar · liquidação em tempo real" />
       <StatGrid cols={3}>
-        <Stat label="BRL → USDC" value="0,1842" tone="muted" /><Stat label="BRL → PYG" value="1.470,0" tone="muted" /><Stat label="Spread" value="0,8%" />
+        <Stat label="BRL → USD" value="0,182" tone="muted" />
+        <Stat label="USD → BRL" value="5,49" tone="muted" />
+        <Stat label="Spread" value="0,6%" />
       </StatGrid>
       <Card style={{ marginTop: 14, maxWidth: 520 }}>
         <SectionTitle>Nova conversão</SectionTitle>
@@ -19,8 +26,8 @@ export default function Conversao() {
             <select className="input" value={to} onChange={(e) => setTo(e.target.value)}>{CCY.map((c) => <option key={c}>{c}</option>)}</select></div>
         </div>
         <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginBottom: 5 }}>Valor</div>
-        <input className="input" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="0,00" style={{ marginBottom: 16 }} />
-        <Soon label="Converter" note="Cotação + conversão (2 lançamentos + linha de FX no ledger) — será ligada ao FX nesta fase." />
+        <input className="input" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="0,00" inputMode="decimal" style={{ marginBottom: 16 }} />
+        <Soon label="Converter" note="Conversão BRL ⇄ USD — será ligada ao FX nesta fase." />
       </Card>
     </div>
   )

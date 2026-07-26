@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --bg:#0A0D13; --surface:#0F141D; --surface-2:#131A25; --raised:#182231;
+  --border:#212B3B; --border-soft:#18202D; --hover:#1B2634;
+  --text:#E8ECF3; --text-2:#9AA6B8; --text-3:#5E6A7D;
+  --accent:#14B8A6; --accent-2:#5EEAD4; --accent-dim:rgba(20,184,166,.12); --accent-line:rgba(20,184,166,.4);
+  --pos:#3FB950; --pos-dim:rgba(63,185,80,.14);
+  --neg:#F85149; --neg-dim:rgba(248,81,73,.14);
+  --warn:#E3A008; --info:#58A6FF; --info-dim:rgba(88,166,255,.14);
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(1100px 560px at 82% -12%,rgba(20,184,166,.12),transparent 60%),var(--bg);
+  color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;letter-spacing:-0.01em;
+}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.card{background:linear-gradient(180deg,var(--surface),rgba(15,20,29,.55));border:1px solid var(--border-soft);border-radius:14px;box-shadow:0 8px 30px -14px rgba(0,0,0,.6)}
+.chip{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;border:1px solid var(--border);white-space:nowrap}
+.chip.pos{color:var(--pos);background:var(--pos-dim);border-color:transparent}
+.chip.acc{color:var(--accent);border-color:var(--accent-line);background:var(--accent-dim)}
+.btn{font:inherit;font-size:12.5px;font-weight:600;border-radius:9px;padding:9px 14px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);color:#07120e;border-color:transparent}
+.btn.primary:hover{background:var(--accent-2)}
+.input{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:var(--text);font:inherit}
+.input:focus{outline:2px solid var(--accent);outline-offset:1px}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

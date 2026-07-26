@@ -71,14 +71,26 @@ services:
       - api
     restart: unless-stopped
 
-  portal:
+  finance-wirex:
     build:
       context: .
-      dockerfile: apps/portal/Dockerfile
+      dockerfile: apps/finance-wirex/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL to the public API URL}
     ports:
-      - "3001:3001"
+      - "3003:3003"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  finance-payfinex:
+    build:
+      context: .
+      dockerfile: apps/finance-payfinex/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL to the public API URL}
+    ports:
+      - "3004:3004"
     depends_on:
       - api
     restart: unless-stopped

@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'Aurora Pay · Portal',
-  description: 'Portal do Cliente — pagamentos instantâneos sobre o Bass Financial Core',
+  title: 'Finance Wirex',
+  description: 'Finance Wirex — receber e converter para Guarani',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

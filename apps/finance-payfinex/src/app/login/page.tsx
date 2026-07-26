@@ -47,13 +47,13 @@ export default function LoginPage() {
             style={{
               width: 42, height: 42, borderRadius: 12, display: 'grid', placeItems: 'center',
               margin: '0 auto 12px', color: '#fff', fontWeight: 800, fontSize: 18,
-              background: 'linear-gradient(150deg,var(--accent),#5B4BD6)',
+              background: 'linear-gradient(135deg,var(--accent),var(--accent-2))',
             }}
           >
-            B
+            P
           </div>
-          <h1 style={{ fontSize: 20, margin: 0, letterSpacing: "-0.02em" }}>Core</h1>
-          <p style={{ color: 'var(--text-3)', fontSize: 12.5, margin: '4px 0 0' }}>Ambiente administrativo · Bass</p>
+          <h1 style={{ fontSize: 20, margin: 0, letterSpacing: '-0.02em' }}>Finance Payfinex</h1>
+          <p style={{ color: 'var(--text-3)', fontSize: 12.5, margin: '4px 0 0' }}>powered by Core</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card" style={{ padding: 22 }}>

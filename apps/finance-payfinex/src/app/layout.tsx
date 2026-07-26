@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'Core · Administrativo',
-  description: 'Ambiente Administrativo — gestão de todos os clientes do Bass Financial Core',
+  title: 'Finance Payfinex',
+  description: 'Finance Payfinex — câmbio BRL x USD',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

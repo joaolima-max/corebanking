@@ -47,13 +47,13 @@ export default function LoginPage() {
             style={{
               width: 42, height: 42, borderRadius: 12, display: 'grid', placeItems: 'center',
               margin: '0 auto 12px', color: '#07120e', fontWeight: 800, fontSize: 18,
-              background: 'linear-gradient(135deg,var(--accent),#1FA588)',
+              background: 'linear-gradient(135deg,var(--accent),var(--accent-2))',
             }}
           >
-            A
+            W
           </div>
-          <h1 style={{ fontSize: 20, margin: 0, letterSpacing: '-0.02em' }}>Aurora Pay</h1>
-          <p style={{ color: 'var(--text-3)', fontSize: 12.5, margin: '4px 0 0' }}>Portal do Cliente · powered by Bass</p>
+          <h1 style={{ fontSize: 20, margin: 0, letterSpacing: '-0.02em' }}>Finance Wirex</h1>
+          <p style={{ color: 'var(--text-3)', fontSize: 12.5, margin: '4px 0 0' }}>powered by Core</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card" style={{ padding: 22 }}>
