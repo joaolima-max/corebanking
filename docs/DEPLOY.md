@@ -63,6 +63,25 @@ Coloque um reverse proxy (Nginx/Traefik + Let's Encrypt) na frente para HTTPS e 
 
 ---
 
+## Onde rodar a API (alternativas ao Railway)
+
+A API só precisa de um lugar que rode Node. Opções gratuitas/baratas:
+
+| Host | Grátis | Observação |
+|---|---|---|
+| **Render** (recomendado) | sim | Igual ao Railway (conecta no GitHub). No plano free a API "dorme" após ~15 min sem uso (1ª chamada demora ~30s). |
+| **Koyeb** | sim | 1 instância free que não dorme. |
+| **Fly.io** | allowance free | Usa Docker (temos `apps/api/Dockerfile`); um pouco mais técnico. |
+
+### Passo a passo no Render (usando nosso Dockerfile)
+1. https://render.com → login com GitHub → **New → Web Service** → escolha `joaolima-max/corebanking`.
+2. **Branch:** `claude/global-financial-platform-kz6gnp`.
+3. **Runtime/Language:** Docker. **Dockerfile Path:** `apps/api/Dockerfile` · **Docker Build Context:** `.` (raiz).
+4. **Environment → Add Environment Variable:** `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL`, `NODE_ENV=production`, `ALLOWED_ORIGINS` (URLs da Vercel). JWT é opcional no MVP.
+5. **Health Check Path:** `/api/health`. Crie o serviço.
+   (O container já roda `prisma migrate deploy` no boot; o **seed** roda uma vez pelo **Shell** do Render: `cd apps/api && pnpm exec prisma db seed`.)
+6. Copie a **URL pública** que o Render gera e use como `NEXT_PUBLIC_API_URL` na Vercel.
+
 ## Banco no Supabase (opcional, recomendado)
 
 O projeto já é compatível com Supabase (o Prisma usa `DATABASE_URL` para queries e
