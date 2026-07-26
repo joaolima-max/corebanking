@@ -10,36 +10,38 @@ const GROUPS: NavGroup[] = [
     group: 'Visão',
     items: [
       { label: 'Início', href: '/dashboard', keywords: 'home resumo' },
-      { label: 'Extrato', href: '/dashboard/extrato', keywords: 'lançamentos ledger movimentacoes' },
+      { label: 'Extrato', href: '/dashboard/extrato', keywords: 'lançamentos ledger' },
     ],
   },
   {
     group: 'Receber',
     items: [
-      { label: 'Cobranças (PIX)', href: '/dashboard/pix', keywords: 'qr chave receber instantaneo' },
-      { label: 'Links de pagamento', href: '/dashboard/links', keywords: 'link checkout cobrar' },
+      { label: 'Cobranças (PIX)', href: '/dashboard/pix', keywords: 'qr chave receber' },
+      { label: 'Links de pagamento', href: '/dashboard/links', keywords: 'link checkout' },
     ],
   },
   {
     group: 'Enviar & Converter',
     items: [
-      { label: 'Enviar dinheiro', href: '/dashboard/enviar', keywords: 'payout transferencia pix out' },
-      { label: 'Conversão & FX', href: '/dashboard/conversao', keywords: 'cambio stablecoin usdc' },
+      { label: 'Enviar dinheiro', href: '/dashboard/enviar', keywords: 'payout transferencia' },
+      { label: 'Conversão & FX', href: '/dashboard/conversao', keywords: 'cambio stablecoin' },
     ],
   },
   {
     group: 'Conta',
     items: [
-      { label: 'Saldos & Wallets', href: '/dashboard/contas', keywords: 'saldo conta carteira moeda' },
-      { label: 'Verificação (KYC)', href: '/dashboard/kyc', keywords: 'documentos identidade cadastro' },
-      { label: 'Configurações', href: '/dashboard/config', keywords: 'branding tarifas webhooks preferencias' },
-      { label: 'Minha conta', href: '/dashboard/conta', keywords: 'perfil usuario' },
+      { label: 'Saldos & Wallets', href: '/dashboard/contas', keywords: 'saldo carteira' },
+      { label: 'Equipe & Dispositivos', href: '/dashboard/equipe', keywords: 'convite usuarios terminais vendedores autorizar' },
+      { label: 'Verificação (KYC)', href: '/dashboard/kyc', keywords: 'documentos' },
+      { label: 'Configurações', href: '/dashboard/config', keywords: 'branding tarifas 2fa senha' },
+      { label: 'Minha conta', href: '/dashboard/conta', keywords: 'perfil' },
     ],
   },
   {
     group: 'Integração',
     items: [
-      { label: 'Developers', href: '/dashboard/developers', keywords: 'api keys webhooks' },
+      { label: 'Developers', href: '/dashboard/developers', keywords: 'api keys' },
+      { label: 'Webhooks', href: '/dashboard/webhooks', keywords: 'reenvio falha eventos' },
     ],
   },
 ]

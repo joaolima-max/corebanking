@@ -9,7 +9,7 @@ const GROUPS: NavGroup[] = [
   {
     group: 'Plataforma',
     items: [
-      { label: 'Visão global', href: '/dashboard', keywords: 'home overview' },
+      { label: 'Visão global', href: '/dashboard', keywords: 'home overview slas' },
       { label: 'Merchants', href: '/dashboard/merchants', keywords: 'white label ambientes grupo' },
       { label: 'Submerchants', href: '/dashboard/submerchants', keywords: 'clientes sellers contas' },
       { label: 'Transações', href: '/dashboard/transacoes', keywords: 'pagamentos e2e extrato seller' },
@@ -18,28 +18,39 @@ const GROUPS: NavGroup[] = [
   {
     group: 'Financeiro',
     items: [
-      { label: 'Ledger global', href: '/dashboard/ledger', keywords: 'contabilidade lançamentos' },
+      { label: 'Ledger global', href: '/dashboard/ledger', keywords: 'contabilidade lançamentos pote' },
+      { label: 'Contabilidade', href: '/dashboard/contabilidade', keywords: 'conciliacao balanco ativo passivo tesouraria' },
       { label: 'FX & Liquidez', href: '/dashboard/fx', keywords: 'cambio conversao stablecoin' },
-      { label: 'Faturamento & Tarifas', href: '/dashboard/faturamento', keywords: 'billing fees taxas cobranca' },
+      { label: 'Faturamento & Tarifas', href: '/dashboard/faturamento', keywords: 'billing fees taxas split cobranca mensalidade lancamento' },
+      { label: 'Planos & Limites', href: '/dashboard/planos', keywords: 'plano limite kyc padrao' },
     ],
   },
   {
     group: 'Risco & Compliance',
     items: [
       { label: 'KYC Onboarding', href: '/dashboard/kyc', keywords: 'cadastro documentos identidade kyb' },
-      { label: 'PLD/FT', href: '/dashboard/pld', keywords: 'aml lavagem financiamento terrorismo' },
-      { label: 'Monitoramento de risco', href: '/dashboard/risco', keywords: 'alertas transacional' },
-      { label: 'Régua de risco', href: '/dashboard/regua', keywords: 'regras score limites' },
-      { label: 'Antifraude', href: '/dashboard/antifraude', keywords: 'documentos negados fraude' },
-      { label: 'Infrações (MEDs)', href: '/dashboard/infracoes', keywords: 'med devolucao especial pix' },
+      { label: 'PLD/FT', href: '/dashboard/pld', keywords: 'aml lavagem' },
+      { label: 'Monitoramento de risco', href: '/dashboard/risco', keywords: 'alertas' },
+      { label: 'Régua de risco', href: '/dashboard/regua', keywords: 'regras score' },
+      { label: 'Antifraude', href: '/dashboard/antifraude', keywords: 'documentos negados' },
+      { label: 'Infrações (MEDs)', href: '/dashboard/infracoes', keywords: 'med devolucao' },
     ],
   },
   {
-    group: 'Infra & Governança',
+    group: 'Operação',
     items: [
-      { label: 'Gateway instantâneo', href: '/dashboard/gateway', keywords: 'rails mojaloop pix spei' },
+      { label: 'Webhooks', href: '/dashboard/webhooks', keywords: 'reenvio falha entregas eventos' },
+      { label: 'Notificações', href: '/dashboard/notificacoes', keywords: 'twilio sms email provedor broadcast comunicado' },
+      { label: 'Gateway instantâneo', href: '/dashboard/gateway', keywords: 'rails mojaloop' },
+    ],
+  },
+  {
+    group: 'Governança',
+    items: [
+      { label: 'Segurança', href: '/dashboard/seguranca', keywords: 'dispositivos aprovar multi acesso convite' },
       { label: 'Equipe', href: '/dashboard/equipe', keywords: 'usuarios time' },
       { label: 'Papéis & RBAC', href: '/dashboard/rbac', keywords: 'permissoes acesso' },
+      { label: 'Configurações', href: '/dashboard/config', keywords: 'perfil senha 2fa email telefone permissoes' },
     ],
   },
 ]

@@ -1,6 +1,44 @@
 'use client'
 
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, useId } from 'react'
+
+/* ---------- charts ---------- */
+export function AreaChart({ data, height = 130, color = 'var(--accent)' }: { data: number[]; height?: number; color?: string }) {
+  const id = useId().replace(/:/g, '')
+  const w = 600, pad = 6
+  const max = Math.max(...data, 1) * 1.15
+  const n = data.length
+  const X = (i: number) => pad + (i * (w - 2 * pad)) / Math.max(n - 1, 1)
+  const Y = (v: number) => height - 6 - (v / max) * (height - 22)
+  let top = `M ${X(0)} ${Y(data[0] ?? 0)}`
+  data.forEach((v, i) => { if (i) top += ` L ${X(i)} ${Y(v)}` })
+  const fill = `${top} L ${X(n - 1)} ${height} L ${X(0)} ${height} Z`
+  return (
+    <svg viewBox={`0 0 ${w} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height, display: 'block' }}>
+      <defs>
+        <linearGradient id={`ac${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={color} stopOpacity="0.32" />
+          <stop offset="1" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {[0, 1, 2].map((g) => <line key={g} x1="0" x2={w} y1={6 + (g * (height - 22)) / 2} y2={6 + (g * (height - 22)) / 2} stroke="var(--border-soft)" />)}
+      <path d={fill} fill={`url(#ac${id})`} />
+      <path d={top} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
+      <circle cx={X(n - 1)} cy={Y(data[n - 1] ?? 0)} r={3.5} fill={color} />
+    </svg>
+  )
+}
+
+export function Bars({ data, height = 130, color = 'var(--accent)' }: { data: number[]; height?: number; color?: string }) {
+  const max = Math.max(...data, 1)
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height }}>
+      {data.map((v, i) => (
+        <div key={i} style={{ flex: 1, height: `${(v / max) * 100}%`, background: color, opacity: 0.35 + 0.65 * (v / max), borderRadius: '3px 3px 0 0', minHeight: 2 }} />
+      ))}
+    </div>
+  )
+}
 
 /* ---------- data helpers ---------- */
 // The API wraps lists in various shapes; normalize to an array.
