@@ -19,6 +19,7 @@ import { LedgerModule } from './modules/ledger/ledger.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { PixModule } from './modules/pix/pix.module';
 import { AdminModule } from './admin/admin.module';
+import { SetupModule } from './setup/setup.module';
 
 @Module({
   controllers: [AppController],
@@ -38,6 +39,7 @@ import { AdminModule } from './admin/admin.module';
     DashboardModule,
     PixModule,
     AdminModule,
+    SetupModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },

@@ -63,6 +63,36 @@ Coloque um reverse proxy (Nginx/Traefik + Let's Encrypt) na frente para HTTPS e 
 
 ---
 
+## API no Vercel (sem cartão) — Plano B
+
+A API roda como **função serverless no Vercel** (mesma conta grátis das telas, sem cartão),
+usando o **Supabase** como banco. Arquivos já preparados: `apps/api/api/index.ts`,
+`apps/api/vercel.json` e o endpoint de seed `POST /api/v1/setup/seed`.
+
+### Passos
+1. **Banco (Supabase):** no **SQL Editor** do Supabase, cole e rode o conteúdo de
+   `docs/supabase-schema.sql` (cria todas as tabelas). *(uma vez)*
+2. **Projeto da API no Vercel:** Add New → Project → importe o repo → **Root Directory = `apps/api`**.
+   - Framework: **Other** (o `vercel.json` já define build/rewrite).
+   - **Environment Variables:**
+     - `DATABASE_URL`, `DIRECT_URL` → do Supabase
+     - `NODE_ENV=production`
+     - `ALLOWED_ORIGINS` → URLs dos 3 frontends na Vercel
+     - `SETUP_KEY` → invente uma senha secreta (ex.: `bass-setup-9f2a`)
+     - `REDIS_URL` → opcional
+   - Deploy → você recebe a **URL da API** (ex.: `https://bass-api.vercel.app`).
+3. **Seed (criar admin), uma vez:** faça um POST para `/api/v1/setup/seed` com o header
+   `X-Setup-Key: <o SETUP_KEY>`. Ex.:
+   ```bash
+   curl -X POST https://SUA-API.vercel.app/api/v1/setup/seed -H "X-Setup-Key: bass-setup-9f2a"
+   ```
+4. **Frontends:** em cada projeto Vercel (Core, Wirex, Payfinex) defina
+   `NEXT_PUBLIC_API_URL` = URL da API (host, **sem** `/api`) → redeploy.
+
+> Observação: NestJS serverless no Vercel é best-effort (não dá para testar do ambiente de dev).
+> Se o build/boot falhar, mande o log que ajustamos. A opção 100% garantida continua sendo o
+> Docker local (`docker-compose.deploy.yml`).
+
 ## Onde rodar a API (alternativas ao Railway)
 
 A API só precisa de um lugar que rode Node. Opções gratuitas/baratas:
