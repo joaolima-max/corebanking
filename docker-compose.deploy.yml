@@ -1,17 +1,16 @@
-# Full-stack MVP deploy (self-host / VPS) — API + Admin + Portal + Postgres + Redis.
-#
-#   1. cp .env.deploy.example .env   (and fill values)
-#   2. docker compose -f docker-compose.deploy.yml up -d --build
-#   3. docker compose -f docker-compose.deploy.yml exec api pnpm exec prisma db seed
-#
-# Requires a host where Docker Hub images are reachable.
+# Full-stack MVP — roda TUDO localmente (ou num VPS) com um comando.
+# Local (sem cartao, sem nuvem):
+#   docker compose -f docker-compose.deploy.yml up -d --build
+#   docker compose -f docker-compose.deploy.yml exec api pnpm exec prisma db seed
+# Abra: Core http://localhost:3002 | Wirex :3003 | Payfinex :3004  (login admin@basspago.com.br / Admin@123!)
+# Num VPS, defina .env (POSTGRES_PASSWORD, NEXT_PUBLIC_API_URL, ALLOWED_ORIGINS) para sobrescrever os defaults.
 services:
   postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-corebanking}
       POSTGRES_USER: ${POSTGRES_USER:-corebanking}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-corebanking}
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -41,12 +40,12 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-corebanking}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-corebanking}?schema=public
-      DIRECT_URL: postgresql://${POSTGRES_USER:-corebanking}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-corebanking}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-corebanking}:${POSTGRES_PASSWORD:-corebanking}@postgres:5432/${POSTGRES_DB:-corebanking}?schema=public
+      DIRECT_URL: postgresql://${POSTGRES_USER:-corebanking}:${POSTGRES_PASSWORD:-corebanking}@postgres:5432/${POSTGRES_DB:-corebanking}
       REDIS_URL: redis://redis:6379
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS to the admin/portal URLs}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3002,http://localhost:3003,http://localhost:3004}
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -64,7 +63,7 @@ services:
       context: .
       dockerfile: apps/admin/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL to the public API URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
     ports:
       - "3002:3002"
     depends_on:
@@ -76,7 +75,7 @@ services:
       context: .
       dockerfile: apps/finance-wirex/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL to the public API URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
     ports:
       - "3003:3003"
     depends_on:
@@ -88,7 +87,7 @@ services:
       context: .
       dockerfile: apps/finance-payfinex/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL to the public API URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
     ports:
       - "3004:3004"
     depends_on:
