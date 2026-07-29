@@ -3,9 +3,16 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter api exec prisma generate && pnpm --filter api build",
   "functions": {
-    "api/index.ts": { "maxDuration": 30, "memory": 1024 }
+    "api/index.ts": {
+      "maxDuration": 30,
+      "memory": 1024
+    }
   },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api" }
-  ]
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ],
+  "outputDirectory": "public"
 }
