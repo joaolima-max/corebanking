@@ -40,3 +40,9 @@ apps/api/prisma/*.db-journal
 # Test coverage
 coverage
 .claude/
+
+# Python (market-intelligence-app/backend)
+__pycache__/
+*.pyc
+venv/
+.venv/
